@@ -1,11 +1,11 @@
-using Flux: params, gradient, update!, ADAM
-using FFTW
-using Distributions
-using LinearAlgebra
-using TensorBoardLogger
-using Logging
-using Base.Threads
-using Random
+#using flux: params, gradient, update!, adam
+#using fftw
+#using distributions
+#using linearalgebra
+#using tensorboardlogger
+#using logging
+#using base.threads
+#using random
 
 """
     optimise(init_z, loss, opt, tolerance, [out_toggle = 0,][max_iter = 1_000_000])

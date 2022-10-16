@@ -1,17 +1,14 @@
-using BSON: @load
+include("src/GenerativeRecoveries.jl")
+using .GenerativeRecoveries
+
+
 
 using MLDatasets: FileDataset
 
-datafolder = "~/.julia/DataDeps/CELEBA/img_align_celeba/"
+#dataset = FileDataset("~/.julia/DataDeps/CELEBA/img_align_celeba/")
 
 
-dataset = FileDataset("~/.julia/DataDeps/CELEBA/img_align_celeba/")
 
-
-dataset[1]
-
-include("reusefiles/VAE_recovery.jl")
-include("reusefiles/relaxedrecovery.jl")
 
 @load "reusefiles/savedmodels/more_incoherentepoch20" model
 incoherentmodel = model

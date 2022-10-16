@@ -1,6 +1,6 @@
-using Flux: Chain
+#using Flux: Chain
 
-include("compressedsensing.jl") #we need the optimise function
+#include("generativecompressedsensing.jl") #we need the optimise function
 
 
 function relaxedloss(measurements, A, linkstrength::AbstractFloat, networkparts::AbstractArray, fullcode::Tuple{Vararg{<:AbstractArray}})

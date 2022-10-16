@@ -1,21 +1,8 @@
-using BSON: @save
-using Base.Threads
-using Images
-using LsqFit
-using Plots
-using Printf
-using DataFrames
-using Random
-using CairoMakie
-using CairoMakie: Axis
-using Flux
-using MLDatasets
 
-include("vaemodels.jl")
+#include("VaeModels.jl")
+#using .VaeModels
 
-using .VaeModels
-
-include("compressedsensing.jl")
+#include("generativecompressedsensing.jl")
 #include("plottingfunctions.jl")
 
 "Makes the true signal of the correct type and shape"

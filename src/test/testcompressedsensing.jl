@@ -1,8 +1,7 @@
-using Test
-using Flux
-using LinearAlgebra
+include("../GenerativeRecoveries.jl")
+using .GenerativeRecoveries
 
-include("./CompressedSensing.jl")
+using Test
 
 @testset "main_test" begin
     model = Chain(Dense(16 => 16))
