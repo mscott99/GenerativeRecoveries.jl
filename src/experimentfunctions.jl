@@ -102,7 +102,7 @@ end
 """
 Deal with inputs as arrays or single entries
 """
-@generated function plot_MNISTrecoveries(VAE::FullVae, aimedmeasurementnumbers::Union{Integer, Vector{<:Integer}}, numbers::Union{Integer, Vector{<:Integer}}; typeofdata=:test, rng=TaskLocalRNG(), kwargs...)
+@generated function plot_MNISTrecoveries(VAE::FullVae, aimedmeasurementnumbers::Union{Integer,Vector{<:Integer}}, numbers::Union{Integer,Vector{<:Integer}}; typeofdata=:test, rng=TaskLocalRNG(), kwargs...)
 
     if aimedmeasurementnumbers <: Integer
         measnum = :([aimedmeasurementnumbers])
@@ -166,7 +166,7 @@ function threshold_through_fit(xdata, ydata; sigmoid_x_scale=2.5f0)
 end
 
 """Scatter plot recovery errors for a single image, fit a sigmoid in the log-log scale, return the recovery threshold from the fit"""
-function recoverythreshold_fromrandomimage(VAE, aimedmeasurementnumbers; img=nothing, presigmoid=true, inrange=true, typeofdata=:test, savefile="reusefiles/experiment_data/ansdata.BSON", kwargs...)
+function recoverythreshold_fromrandomimage(VAE, aimedmeasurementnumbers; img=nothing, presigmoid=true, inrange=true, typeofdata=:test, savefile="experiment_data/ansdata.BSON", kwargs...)
 
     # pick image at random
     decoder = VAE.decoder
@@ -206,7 +206,7 @@ function recoverythreshold_fromrandomimage(VAE, aimedmeasurementnumbers; img=not
 end
 
 """Compare models through the recovery threshold of a small number of images"""
-function compare_models_from_thresholds(modelstocompare, modellabels, aimedmeasurementnumbers, numimages::Integer; typeofdata=:test, savefile="reusefiles/experiment_data/ansdata.BSON", kwargs...)
+function compare_models_from_thresholds(modelstocompare, modellabels, aimedmeasurementnumbers, numimages::Integer; typeofdata=:test, savefile="experiment_data/ansdata.BSON", kwargs...)
     # Still need to debug this
 
     dataset = MNIST(Float32, typeofdata).features

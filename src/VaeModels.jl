@@ -1,5 +1,3 @@
-module VaeModels
-
 using Flux, MLDatasets
 using Flux: logitbinarycrossentropy, pullback, DataLoader, params
 using BSON: @save
@@ -7,7 +5,6 @@ using Statistics, LinearAlgebra, FFTW
 using Logging, ProgressLogging, TensorBoardLogger
 using Random
 
-export FullVae, VaeEncoder, makeVae, trainVae, trainstdVaeonMNIST, train_incoherentVAE_onMNIST
 
 struct VaeEncoder{T,V,L}
     encoderbody::T
@@ -243,7 +240,3 @@ function train_incoherentVAE_onMNIST(; vaelossfn=VAEloss_boundedcoherence, numep
 
     trainincoherentVae(vaelossfn, β, λ, α, F, model, params(model), trainloader, Flux.Optimise.ADAM(), numepochs, "./reusefiles/models/", "./reusefiles/logs/"; kwargs...)
 end
-
-end
-
-

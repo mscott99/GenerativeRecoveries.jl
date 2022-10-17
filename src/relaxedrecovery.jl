@@ -3,7 +3,7 @@
 #include("generativecompressedsensing.jl") #we need the optimise function
 
 
-function relaxedloss(measurements, A, linkstrength::AbstractFloat, networkparts::AbstractArray, fullcode::Tuple{Vararg{<:AbstractArray}})
+function _relaxedloss(measurements, A, linkstrength::AbstractFloat, networkparts::AbstractArray, fullcode::Tuple{Vararg{<:AbstractArray}})
     @assert length(fullcode) == length(networkparts) "the lengths of  fullcode  and  networkparts  must match, they are $(length(fullcode)) and $(length(networkparts))"
     linkloss = 0
     for (i, networkpart) in enumerate(networkparts[1:end-1])
@@ -17,7 +17,7 @@ end
 
 function relaxed_recover(measurements, A, generativenet::Flux.Chain; optimlayers=collect(indexof(generativenet.layers)), linkstrength=1.0f0, kwargs...)
 
-    optimloss(x, p::Tuple) = relaxedloss(p..., x)
+    optimloss(x, p::Tuple) = _relaxedloss(p..., x)
 
     netparts = AbstractArray{Chain}([])
     push!(netparts, generativenet.layers[1:optimlayers[1]] |> Chain)

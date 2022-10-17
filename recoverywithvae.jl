@@ -1,26 +1,19 @@
 include("src/GenerativeRecoveries.jl")
 using .GenerativeRecoveries
 
-include("src/VaeModels.jl")
-using .VaeModels
-
-
-
-
 #dataset = FileDataset("~/.julia/DataDeps/CELEBA/img_align_celeba/")
 
-using BSON:@load
+using BSON: @load
 using Flux
 
 @load "savedmodels/bounded_morecoherencematchingepoch20" model
-incoherentmodel = model
 
-plot_MNISTrecoveries(model,[64,128], [1,2,3,8])
+plot_MNISTrecoveries(model, 64, [1, 2, 4, 5], inrange=false, presigmoid=false)
 
+recoverythreshold_fromrandomimage(model, [32, 64, 128, 512])
 
 @load "reusefiles/savedmodels/bounded_morecoherencematchingepoch20" model
 boundedmodel = model
-
 
 
 f = compare_models_MNISTrecoveries([incoherentmodel, boundedmodel], 128, 8, inrange=false, presigmoid=true)
