@@ -1,17 +1,22 @@
 include("src/GenerativeRecoveries.jl")
 using .GenerativeRecoveries
 
+include("src/VaeModels.jl")
+using .VaeModels
 
 
-using MLDatasets: FileDataset
+
 
 #dataset = FileDataset("~/.julia/DataDeps/CELEBA/img_align_celeba/")
 
+using BSON:@load
+using Flux
 
-
-
-@load "reusefiles/savedmodels/more_incoherentepoch20" model
+@load "savedmodels/bounded_morecoherencematchingepoch20" model
 incoherentmodel = model
+
+plot_MNISTrecoveries(model,[64,128], [1,2,3,8])
+
 
 @load "reusefiles/savedmodels/bounded_morecoherencematchingepoch20" model
 boundedmodel = model
@@ -27,7 +32,6 @@ firstplot
 secondplot
 
 
-plot_MNISTrecoveries_Makie(model, 53, [2, 9], inrange=false)
 
 @time plot_MNISTrecoveries(model, logrange(32, 784, 5), [2, 3, 4, 5, 6, 7, 8, 9], inrange=false, presigmoid=false)
 

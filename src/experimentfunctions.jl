@@ -42,7 +42,7 @@ end
 function imagesfromnumbers(numbers::Integer, typeofdata; rng=TaskLocalRNG())
     data = MNIST(Float32, typeofdata)
     numberset = data.features[:, :, data.targets.==numbers]
-    numberset[:, :, rand(rng, 1:size(numberset)[end])]
+    [numberset[:, :, rand(rng, 1:size(numberset)[end])]]
 end
 
 
@@ -102,7 +102,7 @@ end
 """
 Deal with inputs as arrays or single entries
 """
-@generated function plot_MNISTrecoveries(VAE, aimedmeasurementnumbers, numbers; typeofdata=:test, rng=TaskLocalRNG(), kwargs...)
+@generated function plot_MNISTrecoveries(VAE::FullVae, aimedmeasurementnumbers::Union{Integer, Vector{<:Integer}}, numbers::Union{Integer, Vector{<:Integer}}; typeofdata=:test, rng=TaskLocalRNG(), kwargs...)
 
     if aimedmeasurementnumbers <: Integer
         measnum = :([aimedmeasurementnumbers])
@@ -112,15 +112,9 @@ Deal with inputs as arrays or single entries
         throw(MethodError(plot_MNISTrecoveries, (VAE, aimedmeasurementnumbers, numbers)))
     end
 
-    if !(numbers <: Vector)
-        imagesexpr = :([images])
-    else
-        imagesexpr = :(images)
-    end
-
     return quote
         images = imagesfromnumbers(numbers, typeofdata, rng=rng)
-        plot_MNISTrecoveries(VAE, $measnum, $imagesexpr, rng=rng; kwargs...)
+        plot_MNISTrecoveries(VAE, $measnum, images, rng=rng; kwargs...)
     end
 end
 
