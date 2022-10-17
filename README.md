@@ -1,2 +1,2 @@
-# Generative_Recoveries
+# GenerativeRecoveries
 Recovery Experiments with Generative Prior
