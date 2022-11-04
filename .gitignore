@@ -8,3 +8,4 @@ logs/
 /savedmodels
 /datasets/
 /test/testscratchpaper.jl
+*.code-workspace

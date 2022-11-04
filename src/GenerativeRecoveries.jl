@@ -1,5 +1,4 @@
 module GenerativeRecoveries
-
 using BSON
 using BSON: @save, @load
 using Distributions: Bernoulli
