@@ -2,7 +2,7 @@
 
 julia_version = "1.8.0"
 manifest_format = "2.0"
-project_hash = "f9fe0b155d561eef2696193418991bbe933372dc"
+project_hash = "93c4afe821bdb3cca094de87d98a940b1fdca5da"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -51,6 +51,11 @@ deps = ["LinearAlgebra", "Printf", "Random", "Test"]
 git-tree-sha1 = "a598ecb0d717092b5539dbbe890c98bac842b072"
 uuid = "ab4f0b2a-ad5b-11e8-123f-65d77653426b"
 version = "0.2.0"
+
+[[deps.BSON]]
+git-tree-sha1 = "86e9781ac28f4e80e9b98f7f96eae21891332ac2"
+uuid = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
+version = "0.3.6"
 
 [[deps.BangBang]]
 deps = ["Compat", "ConstructionBase", "Future", "InitialValues", "LinearAlgebra", "Requires", "Setfield", "Tables", "ZygoteRules"]

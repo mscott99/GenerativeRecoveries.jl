@@ -1,7 +1,32 @@
 include("src/GenerativeRecoveries.jl")
 using .GenerativeRecoveries
-
+using MLDatasets
+using Flux
+using Flux: @epochs, train!, params, DataLoader
+using CUDA
+using Test: @testset, @test
+using BSON: @load
 #dataset = FileDataset("~/.julia/DataDeps/CELEBA/img_align_celeba/")
+
+@load "savedmodels/bounded_morecoherencematchingepoch20" model
+
+plot_MNISTrecoveries(model, [16, 32], [1, 2], inrange=false, presigmoid=false)
+
+recoverythreshold_fromrandomimage(model, [32, 64, 128, 512])
+
+firstmodel = model
+
+
+@load "savedmodels/incoherentepoch20" model
+
+secondmodel = model
+
+plot_models_recovery_errors([firstmodel, secondmodel], ["Bounded", "Incoherent"], [32, 64, 128, 512], inrange=false, presigmoid=false)
+
+
+
+
+
 
 using BSON: @load
 using Flux

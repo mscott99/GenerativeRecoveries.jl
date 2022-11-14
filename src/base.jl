@@ -14,7 +14,7 @@
 
     loss takes z as an argument.
 """
-function optimise!(loss, p, z; opt=Flux.Optimise.ADAM(5.0f0), tolerance=1.0f-1, out_toggle=1e2, max_iter=5_000, tblogdir=nothing, kwargs...)
+function optimise!(loss, p, z; opt=Adam(5.0f0), tolerance=1.0f-1, out_toggle=1e2, max_iter=5_000, tblogdir=nothing, kwargs...)
     tol2 = tolerance^2
     usingtb = !isnothing(tblogdir)
     logger = usingtb ? TBLogger(tblogdir) : current_logger()
@@ -89,6 +89,6 @@ end
 function singlerecoveryfourierexperiment(x₀, model, k, n, aimed_m; kwargs...)
     A = sampleFourierwithoutreplacement(aimed_m, n)
     measurements = A * x₀
-    recoveredsignal = recoversignal(measurements, A, model, k; kwargs...)
+    recoveredsignal = recoversignal(measurements, A, model; kwargs...)
     return recoveredsignal, norm(recoveredsignal - x₀)
 end

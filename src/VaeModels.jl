@@ -29,15 +29,19 @@ Flux.@functor FullVae
 
 
 #forward pass
-function (m::FullVae)(x::AbstractArray; rng=TaskLocalRNG())
+function (m::FullVae)(x::Vector; rng=TaskLocalRNG())
     μ, logvar = m.encoder(x)
     randcoeffs = randn(rng, Float32, size(logvar))
     z = μ .+ randcoeffs .* exp.(0.5f0 .* logvar)
-    m.decoder(z)
+    reshape(m.decoder(z), 28, 28)
+end
+
+function (m::FullVae)(x::Matrix; kwargs...)
+    return m(reshape(x, :); kwargs...)
 end
 
 #averaged forward pass
-function (m::FullVae)(x::AbstractArray, n::Integer; rng=TaskLocalRNG())
+function (m::FullVae)(x::Vector, n::Integer; rng=TaskLocalRNG())
     #preformance gain available by getting mu and logvar once, and sampling many times
     acc = zero(x)
     μ, logvar = m.encoder(x)
@@ -48,9 +52,14 @@ function (m::FullVae)(x::AbstractArray, n::Integer; rng=TaskLocalRNG())
         m.decoder(z)
         acc .+= m.decoder(m.encoder(x)[1])
     end
-    acc ./ n
+    reshape(acc ./ n, 28, 28)
 end
 
+function (m::FullVae)(x::Matrix, n::Integer; rng=TaskLocalRNG())
+    #preformance gain available by getting mu and logvar once, and sampling many times
+    newx = reshape(x, :)
+    m(newx, n; rng=rng)
+end
 
 function makeVae(hidden, secondhidden, zlayer)
     FullVae(
@@ -131,7 +140,7 @@ function trainstdVaeonMNIST()
     traindata = reshape(MNIST(Float32, :train).features[:, :, 1:end], 28^2, :)
     trainloader = DataLoader(traindata, batchsize=batchsize)
 
-    trainVAE(1.0f0, 0.01f0, model, params(model), trainloader, Flux.Optimise.ADAM(), 40, "./reusefiles/models/", "./reusefiles/logs/", label="working", loginterval=100)
+    trainVAE(1.0f0, 0.01f0, model, params(model), trainloader, Adam(), 40, "./reusefiles/models/", "./reusefiles/logs/", label="working", loginterval=100)
 end
 
 function VAEloss_unitarycoherence(x, F, model::FullVae, pars, lastlayer, β, λ, α)
@@ -238,5 +247,5 @@ function train_incoherentVAE_onMNIST(; vaelossfn=VAEloss_boundedcoherence, numep
 
     F = dct(diagm(ones(28^2)), 2)
 
-    trainincoherentVae(vaelossfn, β, λ, α, F, model, params(model), trainloader, Flux.Optimise.ADAM(), numepochs, "./reusefiles/models/", "./reusefiles/logs/"; kwargs...)
+    trainincoherentVae(vaelossfn, β, λ, α, F, model, params(model), trainloader, Adam(), numepochs, "./reusefiles/models/", "./reusefiles/logs/"; kwargs...)
 end

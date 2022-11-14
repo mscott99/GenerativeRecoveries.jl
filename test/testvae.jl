@@ -1,3 +1,4 @@
+#using BSON: @load
 
 #Base.global_logger(TBLogger("./reusefiles/logs/"))
 #Logging.global_logger(Logging.ConsoleLogger())
@@ -6,7 +7,16 @@
 @info other = 0.4
 
 @testset "VAE" begin
-    @test 1 == 1
+    using GenerativeRecoveries
+
+    @load "../savedmodels/bounded_morecoherencematchingepoch20" model
+    plot_MNISTrecoveries(model, [16, 32], [1, 2], inrange=false, presigmoid=false)
+    recoverythreshold_fromrandomimage(model, [32, 64, 128, 512])
+    firstmodel = model
+
+    @load "../savedmodels/incoherentepoch20" model
+    secondmodel = model
+    plot_models_recovery_errors([firstmodel, secondmodel], ["Bounded", "Incoherent"], [32, 64, 128, 512], inrange=false, presigmoid=false)
 end
 
 #include("./trainloops.jl")

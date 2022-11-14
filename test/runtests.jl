@@ -4,7 +4,8 @@ using Flux: @epochs, train!, params, DataLoader
 using CUDA
 using Test: @testset, @test
 
-#include("../src/GenerativeRecoveries.jl")
-using GenerativeRecoveries
+include("../src/GenerativeRecoveries.jl")
+using .GenerativeRecoveries
+using BSON: @load
 
 include("./testvae.jl")

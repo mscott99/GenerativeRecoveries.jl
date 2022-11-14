@@ -6,12 +6,12 @@ using Base.Threads
 using Images, LsqFit, Plots, Printf, DataFrames
 using Random, Flux, MLDatasets, FFTW, LinearAlgebra
 using Logging, TensorBoardLogger
-using CairoMakie: Axis, CairoMakie
+using CairoMakie: Axis, CairoMakie, Figure, Label, hidedecorations!, heatmap!
 using Flux: Chain, params, gradient, update!, Adam
 
 include("base.jl")
 include("VaeModels.jl")
-include("experimentfunctions.jl")
+include("experimentfunctions/index.jl")
 include("relaxedrecovery.jl")
 
 export relaxed_recover
