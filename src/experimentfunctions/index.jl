@@ -44,10 +44,11 @@ function imagesfromnumbers(numbers::Integer, typeofdata; rng=TaskLocalRNG())
 end
 
 function setupExperimentDecoderandImages(VAE::FullVae, images::Vector{<:AbstractArray}, presigmoid, inrange)
+    decoder = VAE.decoder
     if !presigmoid #preprocess the models
-        lastlayer = VAE.decoder.layers[end]
+        lastlayer = decoder.layers[end]
         newlastlayer = Dense(lastlayer.weight, false, sigmoid)
-        decoder = Chain(VAE.decoder.layers[1:end-1]..., newlastlayer)
+        decoder = Chain(decoder.layers[1:end-1]..., newlastlayer)
         #VAE = FullVae(VAE.encoder, Chain(VAE.decoder.layers[1:end-1]..., newlastlayer))
     end
     true_signals = similar(images)

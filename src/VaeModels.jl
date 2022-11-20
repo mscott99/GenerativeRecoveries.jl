@@ -33,35 +33,35 @@ function (m::FullVae)(x::Vector; rng=TaskLocalRNG())
     μ, logvar = m.encoder(x)
     randcoeffs = randn(rng, Float32, size(logvar))
     z = μ .+ randcoeffs .* exp.(0.5f0 .* logvar)
-    reshape(m.decoder(z), 28, 28)
+    m.decoder(z)
 end
 
-function (m::FullVae)(x::Matrix; kwargs...)
-    return m(reshape(x, :); kwargs...)
-end
 
 #averaged forward pass
 function (m::FullVae)(x::Vector, n::Integer; rng=TaskLocalRNG())
     #preformance gain available by getting mu and logvar once, and sampling many times
     acc = zero(x)
     μ, logvar = m.encoder(x)
+    #acc = zero(m.decoder(zeros(Float32, size(logvar))))
 
     for i in 1:n
         randcoeffs = randn(rng, Float32, size(logvar))
         z = μ .+ randcoeffs .* exp.(0.5f0 .* logvar)
-        m.decoder(z)
-        acc .+= m.decoder(m.encoder(x)[1])
+        acc .+= m.decoder(z)
     end
-    reshape(acc ./ n, 28, 28)
+    acc ./ n
+end
+
+function (m::FullVae)(x::Matrix; kwargs...)
+    m(reshape(x, :); kwargs...)
 end
 
 function (m::FullVae)(x::Matrix, n::Integer; rng=TaskLocalRNG())
     #preformance gain available by getting mu and logvar once, and sampling many times
-    newx = reshape(x, :)
-    m(newx, n; rng=rng)
+    m(reshape(x, :), n; rng=rng)
 end
 
-function makeVae(hidden, secondhidden, zlayer)
+function makeMNISTVae(hidden, secondhidden, zlayer)
     FullVae(
         VaeEncoder(
             Chain(
@@ -74,7 +74,8 @@ function makeVae(hidden, secondhidden, zlayer)
         Chain(
             Dense(zlayer => secondhidden, bias=false, relu),
             Dense(secondhidden => hidden, bias=false, relu),
-            Dense(hidden => 28^2, bias=false)
+            Dense(hidden => 28^2, bias=false),
+            x -> reshape(x, 28, 28)
         )
     )
 end
@@ -134,7 +135,7 @@ function trainVae(β, λ, model, pars::Flux.Params, traindata, opt::Flux.Optimis
 end
 
 function trainstdVaeonMNIST()
-    model = makeVae(512, 512, 16)
+    model = makeMNISTVae(512, 512, 16)
     batchsize = 64
 
     traindata = reshape(MNIST(Float32, :train).features[:, :, 1:end], 28^2, :)
@@ -239,7 +240,7 @@ function trainincoherentVae(vaelossfn, β, λ, α, F, model, pars::Flux.Params, 
 end
 
 function train_incoherentVAE_onMNIST(; vaelossfn=VAEloss_boundedcoherence, numepochs=20, β=1.0f0, λ=1.0f-2, α=1.0f4, kwargs...)
-    model = makeVae(512, 512, 16)
+    model = makeMNISTVae(512, 512, 16)
     batchsize = 64
 
     traindata = reshape(MNIST(Float32, :train).features[:, :, 1:end], 28^2, :)

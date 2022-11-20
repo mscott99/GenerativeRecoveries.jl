@@ -2482,9 +2482,9 @@ version = "17.4.0+0"
 
 [[deps.protoc_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "57608ab80c2c34032b89ff149495310791890aac"
+git-tree-sha1 = "72308afa0aa106884e4e46aef64dfccb4071be66"
 uuid = "c7845625-083e-5bbe-8504-b32d602b7110"
-version = "3.21.4+0"
+version = "3.21.4+1"
 
 [[deps.x264_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]

@@ -10,14 +10,18 @@ function plot_MNISTrecoveries(VAE::FullVae, aimedmeasurementnumbers::Vector{<:In
     recoveryerrors = Matrix{Float32}(undef, length(images), length(aimedmeasurementnumbers))
     plotimages = Matrix{typeof(images[1])}(undef, length(images), length(aimedmeasurementnumbers))
 
-    F = fouriermatrix(length(images[1]))
+    #F = fouriermatrix(length(images[1]))
     n = length(images[1])
-    @threads for (i, truesignal) in collect(enumerate(truesignals))
-        @threads for (j, aimedm) in collect(enumerate(aimedmeasurementnumbers))
-            freq = rand(rng, Bernoulli(aimedm / n), n)
-            @views sampledF = F[freq, :]
-            measurements = sampledF * reshape(truesignal, :)
-            recovery = recoveryfn(measurements, sampledF, decoder; kwargs...)
+    pdct = plan_r2r(truesignals[1], REDFT00)
+
+    for (i, truesignal) in collect(enumerate(truesignals))
+        for (j, aimedm) in collect(enumerate(aimedmeasurementnumbers))
+            freq = rand(rng, Bernoulli(aimedm / length(truesignals[1])), size(truesignals[1])...)
+            A = fatFFTPlan(pdct, freq)
+            #@views sampledF = F[freq, :]
+            #measurements = sampledF * reshape(truesignal, :)
+            measurements = A * truesignal
+            recovery = recoveryfn(measurements, A, decoder; kwargs...)
             recoveryerrors[i, j] = norm(recovery .- truesignal)
             plotimages[i, j] = presigmoid ? sigmoid(recovery) : recovery
         end
