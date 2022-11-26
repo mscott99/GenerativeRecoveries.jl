@@ -9,3 +9,5 @@ logs/
 /datasets/
 /test/testscratchpaper.jl
 *.code-workspace
+/datasets/
+test/testscratchpaper.jl
