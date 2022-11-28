@@ -1,91 +1,84 @@
 using BSON: @load
+
+using Infiltrator
+using CairoMakie
+#using CairoMakie: heatmap, plot
 using Flux
-using Infiltrator: @infiltrate
-#Base.global_logger(TBLogger("./reusefiles/logs/"))
-#Logging.global_logger(Logging.ConsoleLogger())
-push!(LOAD_PATH, pwd())
+#using Infiltrator: @infiltrate
 using Revise
 using GenerativeRecoveries
-
-function test_addreshape_tomodel()
-    @load "savedmodels/incoherentepoch20" model
-    new_model = addReshapeToModel(model)
-    test_image = MNIST(:test)[1].features
-    plot(plot(Gray.(test_image)'), plot(Gray.(new_model(test_image, 10))'))
-end
-
-
-
-
-@load "savedmodels/bounded_morecoherencematchingepoch20" model
-model.decoder
-
-new_decoder = Chain(model.decoder..., x -> reshape(x, 28, 28))
-using Plots: plot
-using Colors
+using GenerativeRecoveries: addreshape_tomodel, FullVae, logrange, runexperimenttensor
+#using Colors
+#using CairoMakie: heatmap
 using MLDatasets: MNIST
+using Test
 
-test_image = MNIST(:test)[1].features
+# Test loading the model
+@testset "loading a model" begin
+    @load "../savedmodels/bounded_morecoherencematchingepoch20" model
+    new_decoder = Chain(model.decoder..., x -> reshape(x, 28, 28))
+    wrapped_model = FullVae(model.encoder, new_decoder)
+    @test wrapped_model isa FullVae
 
-@show new_decoder
-test_image =
-    code = randn(16)
-plot(Gray.(new_decoder(code)))
+    test_image = MNIST(:test)[rand(1:200)].features
+    @test typeof(test_image) == typeof(wrapped_model(test_image, 2))
 
+    @test plot_MNISTrecoveries(wrapped_model, [2, 3], [3, 4]) isa Figure
 
-
-plot_MNISTrecoveries(model, [16, 32], [1, 2])
-recoverythreshold_fromrandomimage(model, [32, 64, 128, 512])
-firstmodel = model
-
-@load "savedmodels/incoherentepoch20" model
-secondmodel = model
-plot_models_recovery_errors([firstmodel, secondmodel], ["Bounded", "Incoherent"], [32, 64, 128, 512], inrange=false, presigmoid=false)
-
-struct dctMatrix::AbstractMatrix{Float64}
-    n::Int
+    @test plot_MNISTrecoveries(wrapped_model, 2, 3) isa Figure
 end
 
-import Base: getindex
-getindex(A::dctMatrix, i::Int, j::Int) = cos((i - 1) * (j - 1) * π / A.n)
-using MLDatasets
-testimage = MNIST(:test)[1].features
-using Plots, Colors
-plot(Gray.(dct(testimage')))
+# recoverythreshold_fromrandomimage(model, [32, 64, 128, 512])
+# firstmodel = model
 
-using FFTW: dct
-dct(testimage)
+# @load "savedmodels/incoherentepoch20" model
+# secondmodel = model
+# plot_models_recovery_errors([firstmodel, secondmodel], ["Bounded", "Incoherent"], [32, 64, 128, 512], inrange=false, presigmoid=false)
 
-using Distributions: Bernoulli
-aimedm = 10
-truesignals = [testimage]
-freq = rand(Bernoulli(aimedm / length(truesignals[1])), size(truesignals[1])...)
-sum(freq)
-using FFTW: dct
-using Zygote: gradient, Params
+# struct dctMatrix::AbstractMatrix{Float64}
+#     n::Int
+# end
 
-othersignal = rand(28, 28)
-measurements = dct(othersignal)[freq]
-gradient(() -> (dct(truesignals[1]), truesignals[1]))
+# import Base: getindex
+# getindex(A::dctMatrix, i::Int, j::Int) = cos((i - 1) * (j - 1) * π / A.n)
+# using MLDatasets
+# testimage = MNIST(:test)[1].features
+# using Plots, Colors
+# plot(Gray.(dct(testimage')))
 
-gradient(() -> sum(x -> x^2, dct(truesignals[1])), Params(truesignals[1]))
+# using FFTW: dct
+# dct(testimage)
+
+# using Distributions: Bernoulli
+# aimedm = 10
+# truesignals = [testimage]
+# freq = rand(Bernoulli(aimedm / length(truesignals[1])), size(truesignals[1])...)
+# sum(freq)
+# using FFTW: dct
+# using Zygote: gradient, Params
+
+# othersignal = rand(28, 28)
+# measurements = dct(othersignal)[freq]
+# gradient(() -> (dct(truesignals[1]), truesignals[1]))
+
+# gradient(() -> sum(x -> x^2, dct(truesignals[1])), Params(truesignals[1]))
 
 
-signal = randn(8)
-gradient(() -> sum(x -> x^2, dct(signal)), Params(signal))
+# signal = randn(8)
+# gradient(() -> sum(x -> x^2, dct(signal)), Params(signal))
 
-using LinearAlgebra: norm
+# using LinearAlgebra: norm
 
 
 
-gradient(() -> sum(dct(signal)), Params(signal))
-using AbstractFFTs: pifft
-f3(x) = real(norm(pifft.scale .* (pifft.p * fftshift(pfft * x))))
+# gradient(() -> sum(dct(signal)), Params(signal))
+# using AbstractFFTs: pifft
+# f3(x) = real(norm(pifft.scale .* (pifft.p * fftshift(pfft * x))))
 
-f3(signal)
-using FFTW: plan_r2r, REDFT00
-pdct = plan_r2r(truesignals[1], REDFT00)
-gradient(() -> sum(((pdct*truesignals[1])[freq] .- measurements) .^ 2), Params(truesignals[1]))
+# f3(signal)
+# using FFTW: plan_r2r, REDFT00
+# pdct = plan_r2r(truesignals[1], REDFT00)
+# gradient(() -> sum(((pdct*truesignals[1])[freq] .- measurements) .^ 2), Params(truesignals[1]))
 
 
 

@@ -40,7 +40,7 @@ end
 #averaged forward pass
 function (m::FullVae)(x::Vector, n::Integer; rng=TaskLocalRNG())
     #preformance gain available by getting mu and logvar once, and sampling many times
-    acc = zero(x)
+    acc = zero(m(x))
     μ, logvar = m.encoder(x)
     #acc = zero(m.decoder(zeros(Float32, size(logvar))))
 
