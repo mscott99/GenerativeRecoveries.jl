@@ -31,7 +31,13 @@ function relaxed_recover(measurements, A, generativenet::Flux.Chain; optimlayers
     #Get all codes between relevent layers
     codes = [randn(Float32, size(generativenet.layers[1].weight)[2])]
     for index in optimlayers
-        push!(codes, randn(Float32, size(generativenet.layers[index].weight)[1]))
+        if (generativenet.layers[index] isa Dense)
+            push!(codes, randn(Float32, size(generativenet.layers[index].weight)[1]))
+        elseif (generativenet.layers[index-1] isa Dense)
+            push!(codes, randn(Float32, size(generativenet.layers[index].weight)[2]))
+        else
+            throw("Cannot find intermediate code size")
+        end
     end
     codes = Tuple(codes)
     # The problem is that 

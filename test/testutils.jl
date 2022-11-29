@@ -1,11 +1,11 @@
-using GenerativeRecoveries: _uniformly_sampled_frequencies, fatFFTPlan, recoversignal
 
-@testset "test function runExperimentTensor" begin
+@testset "test runExperimentTensor" begin
     #label to remember order
     experimentsetuplabels = ["frequencies", "images"]
     # get the sampled frequencies
     aimed_ms = [10, 20]
-    freqs = [_uniformly_sampled_frequencies(aimed_m, (28, 28)) for aimed_m in aimed_ms]
+
+    freqs = _getsampledfrequencies(aimed_ms, (28, 28))
 
     # Get the signals
     images = [MNIST(:test)[1].features, MNIST(:test)[2].features]
@@ -34,6 +34,9 @@ using GenerativeRecoveries: _uniformly_sampled_frequencies, fatFFTPlan, recovers
 
     result = runexperimenttensor(experimentfn, [freqs, images], pdct)
     @test result isa Array
-    #using CairoMakie: heatmap
-    #heatmap(result[1, 2])
+
+    @test runexperimenttensor(experimentfn, [], freqs[1], images[1], pdct) isa Array{<:Matrix,0}
+    @test runexperimenttensor(experimentfn, [[freqs[1]]], images[1], pdct) isa Array{<:Matrix,1}
+
+
 end

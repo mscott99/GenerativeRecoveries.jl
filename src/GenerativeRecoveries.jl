@@ -9,11 +9,10 @@ using Logging, TensorBoardLogger
 using CairoMakie: Axis, CairoMakie, Figure, Label, hidedecorations!, heatmap!
 using Flux: Chain, params, gradient, update!, Adam
 using FFTW: plan_dct
-using Infiltrator: @infiltrate
 
+include("VaeModels.jl")
 include("utils.jl")
 include("base.jl")
-include("VaeModels.jl")
 include("experimentfunctions/index.jl")
 include("relaxedrecovery.jl")
 include("scripts.jl")
