@@ -52,7 +52,7 @@ function optimise!(loss, p, z; opt=Adam(5.0f0), tolerance=1.0f-1, out_toggle=1e2
     return z
 end
 
-function recoversignal(measurements, A::Union{AbstractMatrix,AbstractFFTs.Plan,fatFFTPlan}, decoder; init_code=randn(Float32, size(decoder.layers[1].weight)[2]), kwargs...)
+function recoversignal(measurements, A::Union{AbstractMatrix,AbstractFFTs.Plan,IndexedMatrix,ParallelMatrix}, decoder; init_code=randn(Float32, size(decoder.layers[1].weight)[2]), kwargs...)
     @debug "Starting Image Recovery"
     function loss(x, p::Tuple)
         return sum(abs2, A * p[1](x) - p[2])

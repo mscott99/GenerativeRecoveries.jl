@@ -1,3 +1,42 @@
+
+"""
+Plot a matrix of recovery images by number for different measurement numbers
+The VAE and VAE decoder should never have a final activation
+VAE can be given as nothing if "inrange=false" is given.
+"""
+function plot_MNISTrecoveries(model::FullVae, aimedmeasurementnumbers, images, recoveryfn::Function=recoversignal; presigmoid=true, inrange=true, datasplit=:test, multithread=false, kwargs...)
+    model = _getmodel(model, presigmoid)[1]
+    decoder = model.decoder
+    truesignals = _getMNISTimagesignals(images, model, datasplit, presigmoid, inrange; kwargs...)
+    freqs = _getsampledfrequencies(aimedmeasurementnumbers, size(truesignals[1]))
+
+    pdct = plan_dct(truesignals[1])
+    # As = [IndexedMatrix(ParallelMatrix(pdct), freq) for freq in freqs]
+    #if multithread
+    #    As = [ParallelMatrix(A) for A in As]
+    #end
+
+    experimentsetup = (truesignals, freqs)
+
+    function experimentfn(truesignal, freq, pdct, decoder, recoveryfn; multithread=multithread, kwargs...)
+        A = IndexedMatrix(pdct, freq)
+        if multithread
+            A = ParallelMatrix(A)
+        end
+        measurements = A * truesignal
+        recoveryimg = recoveryfn(measurements, A, decoder; kwargs...)
+        relativeerr = norm(recoveryimg .- truesignal) / norm(truesignal)
+        (recoveryimg, relativeerr)
+    end
+
+    results = runexperimenttensor(experimentfn, experimentsetup, pdct, decoder, recoveryfn, multithread=multithread; kwargs...)
+    recovered_signals = map(x -> getindex(x, 1), results)
+    recovery_errors = map(x -> getindex(x, 2), results)
+    plottedtruesignals = _preprocess_forplot_MNISTsignals(truesignals, presigmoid)
+    recovered_signals = _preprocess_forplot_MNISTsignals(recovered_signals, presigmoid)
+    _plot_tableofrecoveries(plottedtruesignals, recovered_signals, recovery_errors, sum.(freqs); kwargs...)
+end
+
 function _getmodel(models::Array{<:FullVae}, presigmoid=true; kwargs...)
     if !presigmoid
         for (i, model) in models
@@ -80,6 +119,7 @@ function _plot_tableofrecoveries(plottedtruesignals, recovered_signals::Matrix{<
     numnumbers = size(recovered_signals, 2)
     f = Figure(resolution=(plotwidth * (numnumbers + 1), plotwidth * numfrequencies + plotwidth / 2), backgroundcolor=:lightgrey)
     Label(f[1, 1], "signal", tellheight=true, tellwidth=false, textsize=20)
+
     for (i, signalimage) in enumerate(plottedtruesignals)
         ax = Axis(f[i+1, 1], aspect=1)
         hidedecorations!(ax)
@@ -100,37 +140,6 @@ end
 function _plot_tableofrecoveries(plottedtruesignals, recovered_signals::Array{<:Matrix{<:AbstractFloat},3}, recovery_errors::Array{<:AbstractFloat}, array_num_measurements; plotwidth=200, kwargs...)
     [_plot_tableofrecoveries(plottedtruesignals, recovered_signals[:, :, i], recovery_errors[:, :, i], array_num_measurements; plotwidth=plotwidth) for i in 1:size(recovered_signals, 3)]
 end
-
-"""
-Plot a matrix of recovery images by number for different measurement numbers
-The VAE and VAE decoder should never have a final activation
-VAE can be given as nothing if "inrange=false" is given.
-"""
-function plot_MNISTrecoveries(model::FullVae, aimedmeasurementnumbers, images, recoveryfn::Function=recoversignal; presigmoid=true, inrange=true, datasplit=:test, kwargs...)
-    model = _getmodel(model, presigmoid)[1]
-    decoder = model.decoder
-    truesignals = _getMNISTimagesignals(images, model, datasplit, presigmoid, inrange; kwargs...)
-    frequencies = _getsampledfrequencies(aimedmeasurementnumbers, size(truesignals[1]))
-    pdct = plan_dct(truesignals[1])
-
-    experimentsetup = [truesignals, frequencies]
-
-    function experimentfn(truesignal, freq, decoder, recoveryfn; kwargs...)
-        A = fatFFTPlan(pdct, freq)
-        measurements = A * truesignal
-        recoveryimg = recoveryfn(measurements, A, decoder; kwargs...)::Matrix{Float32}
-        relativeerr = norm(recoveryimg .- truesignal) / norm(truesignal)
-        (recoveryimg, relativeerr)
-    end
-
-    results = runexperimenttensor(experimentfn, experimentsetup, decoder, recoveryfn; kwargs...)
-    recovered_signals = map(x -> getindex(x, 1), results)
-    recovery_errors = map(x -> getindex(x, 2), results)
-    plottedtruesignals = _preprocess_forplot_MNISTsignals(truesignals, presigmoid)
-    recovered_signals = _preprocess_forplot_MNISTsignals(recovered_signals, presigmoid)
-    _plot_tableofrecoveries(plottedtruesignals, recovered_signals, recovery_errors, sum.(frequencies); kwargs...)
-end
-
 "Returns an array of plots, one for each model"
 function plot_MNISTrecoveries(models::Vector{<:FullVae}, aimedmeasurementnumbers, images; datasplit=:test, kwargs...)
     # other method for array of models, because the models impact everything

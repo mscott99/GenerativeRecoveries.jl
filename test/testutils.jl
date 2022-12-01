@@ -1,5 +1,6 @@
 
 @testset "test runExperimentTensor" begin
+    using GenerativeRecoveries: ParallelMatrix
     #label to remember order
     experimentsetuplabels = ["frequencies", "images"]
     # get the sampled frequencies
@@ -26,7 +27,7 @@
     pdct = plan_dct(images[1])
 
     function experimentfn(freq, truesignal, pdct; kwargs...)
-        A = fatFFTPlan(pdct, freq)
+        A = ParallelMatrix(pdct, freq)
         measurements = A * truesignal
         recovery = recoversignal(measurements, A, decoder; kwargs...)
         recovery
