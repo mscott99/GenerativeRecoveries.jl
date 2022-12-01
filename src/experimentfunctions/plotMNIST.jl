@@ -5,7 +5,7 @@ The VAE and VAE decoder should never have a final activation
 VAE can be given as nothing if "inrange=false" is given.
 """
 function plot_MNISTrecoveries(model::FullVae, aimedmeasurementnumbers, images, recoveryfn::Function=recoversignal; presigmoid=true, inrange=true, datasplit=:test, multithread=false, kwargs...)
-    model = _getmodel(model, presigmoid)[1]
+    model = _getmodel(model, presigmoid)
     decoder = model.decoder
     truesignals = _getMNISTimagesignals(images, model, datasplit, presigmoid, inrange; kwargs...)
     freqs = _getsampledfrequencies(aimedmeasurementnumbers, size(truesignals[1]))
@@ -37,25 +37,61 @@ function plot_MNISTrecoveries(model::FullVae, aimedmeasurementnumbers, images, r
     _plot_tableofrecoveries(plottedtruesignals, recovered_signals, recovery_errors, sum.(freqs); kwargs...)
 end
 
-function _getmodel(models::Array{<:FullVae}, presigmoid=true; kwargs...)
-    if !presigmoid
-        for (i, model) in models
-            lastlayer = model.decoder.layers[end]
-            if typeof(lastlayer) <: Dense && lastlayer.bias == zero(lastlayer.bias)
-                newlastlayer = Dense(lastlayer.weight, false, sigmoid)
-                newdecoder = Chain(model.decoder.layers[1:end-1]..., newlastlayer)
-                models[i] = FullVae(model.encoder, newdecoder)
-            else
-                throw("Unimplemented")
-            end
-        end
-    end
-    models
+function plot_MNISTrecoveries(models::Vector{<:FullVae}, aimedmeasurementnumbers, images; datasplit=:test, kwargs...)
+    # other method for array of models, because the models impact everything
+    images = _getMNISTimagesignals(images, datasplit; kwargs...) #to standardise images and frequencies
+    freqs = _getsampledfrequencies(aimedmeasurementnumbers, size(images[1]); kwargs...)
+    [plot_MNISTrecoveries(model, freqs, images; datasplit=datasplit, kwargs...) for model in models]
 end
 
-function _getmodel(model::FullVae, presigmoid=true; kwargs...)
-    _getmodel([model], presigmoid)
+function plot_MNISTrecoveries(model::FullVae, aimedmeasurementnumbers, images, recovery_functions::AbstractArray{<:Function}; datasplit=:test, kwargs...)
+    images = _getMNISTimagesignals(images, datasplit; kwargs...) #to standardise images and frequencies
+    freqs = _getsampledfrequencies(aimedmeasurementnumbers, size(images[1]); kwargs...)
+    [plot_MNISTrecoveries(model, freqs, images, recoveryfn; datasplit=datasplit, kwargs...) for recoveryfn in recovery_functions]
 end
+
+"""Pre-process a single model"""
+function _getmodel(model::FullVae, presigmoid=true; kwargs...)
+    if presigmoid
+        return model
+    else
+        lastlayer = model.decoder.layers[end]
+        if typeof(lastlayer) <: Dense && lastlayer.bias == zero(lastlayer.bias)
+            newlastlayer = Dense(lastlayer.weight, false, sigmoid)
+            newdecoder = Chain(model.decoder.layers[1:end-1]..., newlastlayer)
+            return FullVae(model.encoder, newdecoder)
+        elseif lastlayer isa Function # Assume it's a reshape
+            secondtolastlayer = model.decoder.layers[end-1]
+            secondtolastlayer = Dense(secondtolastlayer.weight, false, sigmoid)
+            newdecoder = Chain(model.decoder.layers[1:end-2]..., secondtolastlayer, lastlayer)
+            return FullVae(model.encoder, newdecoder)
+        else
+            throw("Unimplemented")
+        end
+
+        # newmodels = []
+        # for (i, model) in enumerate(models)
+        #     lastlayer = model.decoder.layers[end]
+        #     if typeof(lastlayer) <: Dense && lastlayer.bias == zero(lastlayer.bias)
+        #         newlastlayer = Dense(lastlayer.weight, false, sigmoid)
+        #         newdecoder = Chain(model.decoder.layers[1:end-1]..., newlastlayer)
+        #         push!(newmodels, FullVae(model.encoder, newdecoder))
+        #     elseif lastlayer isa Function # Assume it's a reshape
+        #         lastlayer = model.decoder.layers[end-1]
+        #         newlastlayer = Dense(lastlayer.weight, false, sigmoid)
+        #         newdecoder = Chain(model.decoder.layers[1:end-2]..., newlastlayer)
+        #         push!(newmodels, FullVae(model.encoder, newdecoder))
+        #     else
+        #         throw("Unimplemented")
+        #     end
+        # end
+        # return newmodels
+    end
+end
+
+# function _getmodel(model::FullVae, presigmoid=true; kwargs...)
+#     _getmodel([model], presigmoid)
+# end
 
 """
 Standardise the image inputs
@@ -63,11 +99,12 @@ Standardise the image inputs
 function _getMNISTimagesignals(numbers::Vector{<:Integer}, fullmodel::FullVae, datasplit=:test, presigmoid=true, inrange=true; rng=TaskLocalRNG(), kwargs...)
     images = _getMNISTimagesignals(numbers, datasplit)
     if inrange
-        truesignals = fullmodel.(images, 10, rng=rng)
+        return fullmodel.(images, 10, rng=rng)
     elseif presigmoid # not in range and presigmoid; only then do we need to invert the signals. Otherwise the modified decoder takes care of it.
-        truesignals = (in -> inversesigmoid.(in)).(images) # double broadcast
+        return (in -> inversesigmoid.(in)).(images) # double broadcast
+    else
+        return images
     end
-    truesignals
 end
 
 function _getMNISTimagesignals(numbers::Vector{<:Integer}, datasplit=:test; rng=TaskLocalRNG(), kwargs...)
@@ -81,11 +118,12 @@ end
 
 function _getMNISTimagesignals(images::AbstractArray{<:Matrix}, model::FullVae, datasplit=:test, presigmoid=true, inrange=true; kwargs...)
     if inrange
-        truesignals = model.(images, 10)
+        return model.(images, 10)
     elseif presigmoid # not in range and presigmoid; only then do we need to invert the signals. Otherwise the modified decoder takes care of it.
-        truesignals = (in -> inversesigmoid.(in)).(images) # double broadcast
+        return (in -> inversesigmoid.(in)).(images) # double broadcast
+    else
+        return images
     end
-    truesignals
 end
 
 function _getsampledfrequencies(pre_sampled_frequencies::Vector{<:AbstractArray{<:Bool}}, img_size; rng=TaskLocalRNG(), kwargs...)
@@ -139,17 +177,4 @@ end
 
 function _plot_tableofrecoveries(plottedtruesignals, recovered_signals::Array{<:Matrix{<:AbstractFloat},3}, recovery_errors::Array{<:AbstractFloat}, array_num_measurements; plotwidth=200, kwargs...)
     [_plot_tableofrecoveries(plottedtruesignals, recovered_signals[:, :, i], recovery_errors[:, :, i], array_num_measurements; plotwidth=plotwidth) for i in 1:size(recovered_signals, 3)]
-end
-"Returns an array of plots, one for each model"
-function plot_MNISTrecoveries(models::Vector{<:FullVae}, aimedmeasurementnumbers, images; datasplit=:test, kwargs...)
-    # other method for array of models, because the models impact everything
-    images = _getMNISTimagesignals(images, datasplit; kwargs...) #to standardise images and frequencies
-    freqs = _getsampledfrequencies(aimedmeasurementnumbers, size(images[1]); kwargs...)
-    [plot_MNISTrecoveries(model, freqs, images; datasplit=datasplit, kwargs...) for model in models]
-end
-
-function plot_MNISTrecoveries(model::FullVae, aimedmeasurementnumbers, images, recovery_functions::AbstractArray{<:Function}; datasplit=:test, kwargs...)
-    images = _getMNISTimagesignals(images, datasplit; kwargs...) #to standardise images and frequencies
-    freqs = _getsampledfrequencies(aimedmeasurementnumbers, size(images[1]); kwargs...)
-    [plot_MNISTrecoveries(model, freqs, images, recoveryfn; datasplit=datasplit, kwargs...) for recoveryfn in recovery_functions]
 end
