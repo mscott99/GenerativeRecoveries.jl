@@ -1,5 +1,5 @@
 @testset "check runexperiments" begin
-    using GenerativeRecoveries: FullVae, recoversignal, wrap_model_withreshape, VaeEncoder, _getmodel, _getMNISTimagesignals, _getsampledfrequencies, ParallelMatrix, IndexedMatrix, runexperimenttensor
+    using GenerativeRecoveries: FullVae, recoversignal, wrap_model_withreshape, VaeEncoder, _getmodel, _getMNISTimagesignals, _getsampledfrequencies, IndexedMatrix, runexperimenttensor
     using FFTW: plan_dct
     using LinearAlgebra: norm
 
@@ -30,8 +30,7 @@
     recoveryfn = recoversignal
 
     function experimentfn(truesignal, freq, pdct, decoder, recoveryfn; kwargs...) # pass frequencies only
-        A = IndexedMatrix(pdct, freq)
-        A = ParallelMatrix(A)
+        A = IndexedMatrix(deepcopy(pdct), freq)
         measurements = A * truesignal
         recoveryimg = recoveryfn(measurements, A, decoder, max_iter=10; kwargs...)
         relativeerr = norm(recoveryimg .- truesignal) / norm(truesignal)

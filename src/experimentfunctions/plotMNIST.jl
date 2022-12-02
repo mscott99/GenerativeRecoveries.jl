@@ -9,20 +9,14 @@ function plot_MNISTrecoveries(model::FullVae, aimedmeasurementnumbers, images, r
     decoder = model.decoder
     truesignals = _getMNISTimagesignals(images, model, datasplit, presigmoid, inrange; kwargs...)
     freqs = _getsampledfrequencies(aimedmeasurementnumbers, size(truesignals[1]))
-
     pdct = plan_dct(truesignals[1])
-    # As = [IndexedMatrix(ParallelMatrix(pdct), freq) for freq in freqs]
-    #if multithread
-    #    As = [ParallelMatrix(A) for A in As]
-    #end
-
     experimentsetup = (truesignals, freqs)
 
     function experimentfn(truesignal, freq, pdct, decoder, recoveryfn; multithread=multithread, kwargs...)
-        A = IndexedMatrix(pdct, freq)
         if multithread
-            A = ParallelMatrix(A)
+            pdct = deepcopy(pdct)
         end
+        A = IndexedMatrix(pdct, freq)
         measurements = A * truesignal
         recoveryimg = recoveryfn(measurements, A, decoder; kwargs...)
         relativeerr = norm(recoveryimg .- truesignal) / norm(truesignal)

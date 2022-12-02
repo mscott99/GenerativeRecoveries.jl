@@ -1,12 +1,12 @@
 # Testing plotMNIST
-using GenerativeRecoveries: plot_MNISTrecoveries, wrap_model_withreshape, FullVae, VaeEncoder
+using GenerativeRecoveries: plot_MNISTrecoveries, wrap_model_withreshape, FullVae, VaeEncoder, logrange
 using Flux
 using BSON: @load
 using Revise
 @load "savedmodels/more_incoherentepoch20" model
 model = wrap_model_withreshape(model)
-plot_MNISTrecoveries(model, [16, 32, 64], [2, 3, 8, 9], max_iter=10, multithread=false)
-plot_MNISTrecoveries(model, [16, 32, 64], [2, 3, 8, 9], max_iter=10, multithread=true)
+plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=true)
+plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=false)
 plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=false, presigmoid=false)
 plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=true, presigmoid=false)
 plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=false, inrange=false)
@@ -30,7 +30,7 @@ plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multit
 using Test
 using Flux
 using BSON: @load
-using GenerativeRecoveries: FullVae, recoversignal, wrap_model_withreshape, VaeEncoder, _getmodel, _getMNISTimagesignals, _getsampledfrequencies, ParallelMatrix, IndexedMatrix, runexperimenttensor
+using GenerativeRecoveries: FullVae, recoversignal, wrap_model_withreshape, VaeEncoder, _getmodel, _getMNISTimagesignals, _getsampledfrequencies, IndexedMatrix, runexperimenttensor
 using FFTW: plan_dct
 using LinearAlgebra: norm
 
@@ -61,8 +61,7 @@ experimentsetup = (truesignals, freqs)
 recoveryfn = recoversignal
 
 function experimentfn(truesignal, freq, pdct, decoder, recoveryfn; kwargs...) # pass frequencies only
-    A = IndexedMatrix(pdct, freq)
-    A = ParallelMatrix(A)
+    A = IndexedMatrix(deepcopy(pdct), freq)
     measurements = A * truesignal
     recoveryimg = recoveryfn(measurements, A, decoder, max_iter=10; kwargs...)
     relativeerr = norm(recoveryimg .- truesignal) / norm(truesignal)
