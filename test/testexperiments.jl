@@ -1,16 +1,13 @@
 @testset "check runexperiments" begin
-    using GenerativeRecoveries: FullVae, recoversignal, wrap_model_withreshape, VaeEncoder, _getmodel, _getMNISTimagesignals, _getsampledfrequencies, IndexedMatrix, runexperimenttensor
+    using GenerativeRecoveries: FullVae, recoversignal, wrap_model_withreshape, VaeEncoder, _getmodels, _getMNISTimagesignals, _getsampledfrequencies, IndexedMatrix, runexperimenttensor
     using FFTW: plan_dct
     using LinearAlgebra: norm
+    using DataFrames: DataFrame
 
     @load "../savedmodels/bounded_morecoherencematchingepoch20" model
     secondmodel = wrap_model_withreshape(model)
 
-    @load "../savedmodels/more_incoherentepoch20" model
-    model = wrap_model_withreshape(model)
-    @test secondmodel isa FullVae
-
-    model = _getmodel(secondmodel)
+    model = _getmodels(secondmodel)[1]
     images = [2, 3, 5]
     aimedmeasurementnumbers = [22, 33, 45]
     truesignals = _getMNISTimagesignals(images, secondmodel)
@@ -24,9 +21,8 @@
     # As = [IndexedMatrix(ParallelMatrix(pdct), freq) for freq in freqs]
     #As = map(x -> FatFFTPlan(pdct, x), frequencies)
 
-
     experimentsetup = (truesignals, freqs)
-
+    setupsymbols = (:truesignal, :frequency)
     recoveryfn = recoversignal
 
     function experimentfn(truesignal, freq, pdct, decoder, recoveryfn; kwargs...) # pass frequencies only
@@ -34,21 +30,25 @@
         measurements = A * truesignal
         recoveryimg = recoveryfn(measurements, A, decoder, max_iter=10; kwargs...)
         relativeerr = norm(recoveryimg .- truesignal) / norm(truesignal)
-        (recoveryimg, relativeerr)
+        ((:recovered_img => recoveryimg), (:relativeerr => relativeerr))
     end
 
-    array_in = (experimentsetup[i][1] for i in 1:length(experimentsetup))
-
+    array_in = (experimentsetup[i][1] for i in eachindex(experimentsetup))
     decoder = model.decoder
-    # As[1] * truesignals[1]
-
-    typeof(truesignals[1])
-    size(truesignals[1])
-
     experiment_result = experimentfn(array_in..., pdct, decoder, recoveryfn, max_iter=10)
 
-    @test runexperimenttensor(experimentfn, ([freqs[1]],), images[1], pdct, decoder, recoveryfn) isa Vector
-    @test runexperimenttensor(experimentfn, experimentsetup, pdct, decoder, recoveryfn, max_iter=10, multithread=true) isa Matrix
+    first = true
+    df = nothing # initialize symbol for scope purposes
+
+    #pairgenerator = (PairwithArrayIterator(key, enumerate(value)) for (key, value) in experimentsetup)
+    setupsymbolsindex = (Symbol(String(key) * "_index") for key in setupsymbols)
+    kwargs = (; max_iter=10)
+    include_values = true
+    args = (pdct, decoder, recoveryfn)
+
+
+    @test runexperimenttensor(experimentfn, ([freqs[1]],), (:frequency,), images[1], pdct, decoder, recoveryfn) isa DataFrame
+    @test runexperimenttensor(experimentfn, experimentsetup, (:truesignal, :frequency), pdct, decoder, recoveryfn; max_iter=10, multithread=false) isa DataFrame
 end
 
 @testset "test plotMNIST" begin
@@ -56,7 +56,7 @@ end
 
     @load "../savedmodels/more_incoherentepoch20" model
     model = wrap_model_withreshape(model)
-    plot_MNISTrecoveries(model, [16, 32, 64], [2, 3, 8, 9], max_iter=10, multithread=false)
+    plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=false)
     plot_MNISTrecoveries(model, [16, 32, 64], [2, 3, 8, 9], max_iter=10, multithread=true)
     plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=false, presigmoid=false)
     plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=true, presigmoid=false)
@@ -64,21 +64,21 @@ end
     plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=true, inrange=false)
     plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=false, inrange=false, presigmoid=false)
     plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=true, inrange=false, presigmoid=false)
-    secondmodel = model
-    @load "../savedmodels/bounded_morecoherencematchingepoch20" model
-    model = wrap_model_withreshape(model)
-    plot_MNISTrecoveries([model, secondmodel], [16, 32, 64], [2, 3, 8, 9], max_iter=10, multithread=false)
-    plot_MNISTrecoveries([model, secondmodel], [16, 32, 64], [2, 3, 8, 9], max_iter=10, multithread=true)
-    plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=false, presigmoid=false)
-    plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=true, presigmoid=false)
-    plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=false, inrange=false)
-    plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=true, inrange=false)
-    plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=false, inrange=false, presigmoid=false)
-    plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=true, inrange=false, presigmoid=false)
+    #secondmodel = model
+    #@load "../savedmodels/bounded_morecoherencematchingepoch20" model
+    #model = wrap_model_withreshape(model)
+    #plot_MNISTrecoveries([model, secondmodel], [16, 32, 64], [2, 3, 8, 9], max_iter=10, multithread=false)
+    #plot_MNISTrecoveries([model, secondmodel], [16, 32, 64], [2, 3, 8, 9], max_iter=10, multithread=true)
+    #plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=false, presigmoid=false)
+    #plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=true, presigmoid=false)
+    #plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=false, inrange=false)
+    #plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=true, inrange=false)
+    #plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=false, inrange=false, presigmoid=false)
+    #plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=true, inrange=false, presigmoid=false)
+    #end
+
+
+
 end
-
-
-
-#end
 # recoverythreshold_fromrandomimage(model, [32, 64, 128, 512])
 # firstmodel = model

@@ -1,3 +1,16 @@
+using DataFrames: DataFrame, groupby, convert
+using Test
+
+
+using GenerativeRecoveries: runexperimenttensor
+using DataFrames: DataFrame
+experimentfn(; firstsetup, secondsetup, fixed) = (; :result => firstsetup * secondsetup * fixed)
+experimentsetup = Dict(:firstsetup => [1, 3, 9], :secondsetup => [2, 4])
+fixedsetup = Dict(:fixed => 2)
+
+a = DataFrame(a=[1, 2, 3, 4], b=[1.9, 2.0, 4.5, 6.5])
+
+@test runexperimenttensor(experimentfn, experimentsetup, fixedsetup) isa DataFrame
 # Testing plotMNIST
 using GenerativeRecoveries: plot_MNISTrecoveries, wrap_model_withreshape, FullVae, VaeEncoder, logrange
 using Flux
@@ -6,31 +19,16 @@ using Revise
 @load "savedmodels/more_incoherentepoch20" model
 model = wrap_model_withreshape(model)
 plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=true)
-plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=false)
-plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=false, presigmoid=false)
-plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=true, presigmoid=false)
-plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=false, inrange=false)
-plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=true, inrange=false)
-plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=false, inrange=false, presigmoid=false)
-plot_MNISTrecoveries(model, [16, 32], [2, 3], max_iter=10, multithread=true, inrange=false, presigmoid=false)
 secondmodel = model
 @load "savedmodels/bounded_morecoherencematchingepoch20" model
 model = wrap_model_withreshape(model)
 plot_MNISTrecoveries([model, secondmodel], [16, 32, 64], [2, 3, 8, 9], max_iter=10, multithread=false)
-plot_MNISTrecoveries([model, secondmodel], [16, 32, 64], [2, 3, 8, 9], max_iter=10, multithread=true)
-plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=false, presigmoid=false)
-plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=true, presigmoid=false)
-plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=false, inrange=false)
-plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=true, inrange=false)
-plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=false, inrange=false, presigmoid=false)
-plot_MNISTrecoveries([model, secondmodel], [16, 32], [2, 3], max_iter=10, multithread=true, inrange=false, presigmoid=false)
 
-
-# Test runexperiment tensor
+# testexperiments Test runexperiment tensor ----------------
 using Test
 using Flux
 using BSON: @load
-using GenerativeRecoveries: FullVae, recoversignal, wrap_model_withreshape, VaeEncoder, _getmodel, _getMNISTimagesignals, _getsampledfrequencies, IndexedMatrix, runexperimenttensor
+using GenerativeRecoveries: FullVae, recoversignal, wrap_model_withreshape, VaeEncoder, _getmodels, _getMNISTimagesignals, _getsampledfrequencies, IndexedMatrix, runexperimenttensor
 using FFTW: plan_dct
 using LinearAlgebra: norm
 
@@ -41,7 +39,7 @@ secondmodel = wrap_model_withreshape(model)
 model = wrap_model_withreshape(model)
 @test secondmodel isa FullVae
 
-model = _getmodel(secondmodel)
+model = _getmodels(secondmodel)[1]
 images = [2, 3, 5]
 aimedmeasurementnumbers = [22, 33, 45]
 truesignals = _getMNISTimagesignals(images, secondmodel)
@@ -55,15 +53,14 @@ freqs = _getsampledfrequencies([16, 32, 64], size(truesignals[1]))
 # As = [IndexedMatrix(ParallelMatrix(pdct), freq) for freq in freqs]
 #As = map(x -> FatFFTPlan(pdct, x), frequencies)
 
-
 experimentsetup = (truesignals, freqs)
 
 recoveryfn = recoversignal
 
-function experimentfn(truesignal, freq, pdct, decoder, recoveryfn; kwargs...) # pass frequencies only
-    A = IndexedMatrix(deepcopy(pdct), freq)
+function experimentfn(; truesignal, frequency, pdct, model, recoveryfn, kwargs...) # pass frequencies only
+    A = IndexedMatrix(deepcopy(pdct), frequency)
     measurements = A * truesignal
-    recoveryimg = recoveryfn(measurements, A, decoder, max_iter=10; kwargs...)
+    recoveryimg = recoveryfn(measurements, A, model, max_iter=10; kwargs...)
     relativeerr = norm(recoveryimg .- truesignal) / norm(truesignal)
     (recoveryimg, relativeerr)
 end
@@ -80,6 +77,8 @@ experiment_result = experimentfn(array_in..., pdct, decoder, recoveryfn, max_ite
 
 @test runexperimenttensor(experimentfn, ([freqs[1]],), images[1], pdct, decoder, recoveryfn) isa Vector
 @test runexperimenttensor(experimentfn, experimentsetup, pdct, decoder, recoveryfn, max_iter=10, multithread=true) isa Matrix
+
+
 # struct ParallelFFTPlan{T<:AbstractFFTs.Plan}
 #     pdct::AbstractArray{T}
 # end
