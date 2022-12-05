@@ -12,6 +12,40 @@ function getuniformlysampledfrequencieswithreplacement(aimed_m::Integer, img_siz
     rand(rng, Bernoulli(aimed_m / prod(img_size)), img_size...)
 end
 
+function getdeterministicanduniformfrequencies(deterministic_m::Integer, uniform_m::Integer, img_size::Tuple{Vararg{Int}}; rng=TaskLocalRNG(), kwargs...)
+    dim = length(img_size)
+    num_orthants = 2^dim
+    volume = deterministic_m * num_orthants
+    radius = volume^(1 / dim) * gamma(dim / 2 + 1)^(1 / dim) / sqrt(π)
+    frequencysamplingarray = BitArray((sum(abs2, Tuple(index) .- 0.5) ≤ radius^2 for index in CartesianIndices(img_size)))
+    addsamplinguniformlyatrandom!(deterministic_m + uniform_m - sum(frequencysamplingarray), frequencysamplingarray)
+    frequencysamplingarray
+end
+
+function addsamplinguniformlyatrandom!(numtoadd::Integer, frequencysamplingarray::AbstractArray{<:Bool})
+    indexset = CartesianIndices(size(frequencysamplingarray))
+    while numtoadd != 0
+        tryindex = rand(indexset)
+        if frequencysamplingarray[tryindex] == 0
+            frequencysamplingarray[tryindex] = 1
+            numtoadd -= 1
+        end
+    end
+end
+
+
+function sampledeterministicallyfirstfrequencies(deterministic_m::Integer, img_size::Tuple{Vararg{Int}}; kwargs...)
+    img_size = (5, 5, 3)
+    dim = length(img_size)
+    num_orthants = 2^dim
+    volume = deterministic_m * num_orthants
+    radius = volume^(1 / dim) * gamma(dim / 2 + 1)^(1 / dim) / sqrt(π)
+    BitArray((sum(abs2, Tuple(index) .- 0.5) ≤ radius^2 for index in CartesianIndices(img_size)))
+end
+
+
+
+
 function sampleFourierwithoutreplacement(aimed_m, n; rng=TaskLocalRNG())
     F = Float32.(dct(diagm(ones(n)), 2))
     sampling = rand(rng, Bernoulli(aimed_m / n), n)

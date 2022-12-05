@@ -11,6 +11,7 @@ using Flux: Chain, params, gradient, update!, Adam
 using FFTW: plan_dct
 using DataFrames: DataFrame, AbstractDataFrame
 using Infiltrator: @infiltrate
+using SpecialFunctions: gamma
 
 include("VaeModels.jl")
 include("measurementsampling.jl")
