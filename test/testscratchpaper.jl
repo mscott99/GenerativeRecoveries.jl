@@ -28,7 +28,7 @@ plot_MNISTrecoveries([model, secondmodel], [16, 32, 64], [2, 3, 8, 9], max_iter=
 using Test
 using Flux
 using BSON: @load
-using GenerativeRecoveries: FullVae, recoversignal, wrap_model_withreshape, VaeEncoder, _getmodels, _getMNISTimagesignals, _getsampledfrequencies, IndexedMatrix, runexperimenttensor
+using GenerativeRecoveries: FullVae, recoversignal, wrap_model_withreshape, VaeEncoder, _setupmodels, _setupMNISTimagesignals, _setupsampledfrequencies, IndexedMatrix, runexperimenttensor
 using FFTW: plan_dct
 using LinearAlgebra: norm
 
@@ -39,16 +39,16 @@ secondmodel = wrap_model_withreshape(model)
 model = wrap_model_withreshape(model)
 @test secondmodel isa FullVae
 
-model = _getmodels(secondmodel)[1]
+model = _setupmodels(secondmodel)[1]
 images = [2, 3, 5]
 aimedmeasurementnumbers = [22, 33, 45]
-truesignals = _getMNISTimagesignals(images, secondmodel)
-freqs = _getsampledfrequencies(aimedmeasurementnumbers, size(truesignals[1]))
+truesignals = _setupMNISTimagesignals(images, secondmodel)
+freqs = _setupsampledfrequencies(aimedmeasurementnumbers, size(truesignals[1]))
 pdct = plan_dct(truesignals[1])
 pdct * truesignals[1]
 #FatFFTPlan(pdct, frequencies[1])
 # mystery error here
-freqs = _getsampledfrequencies([16, 32, 64], size(truesignals[1]))
+freqs = _setupsampledfrequencies([16, 32, 64], size(truesignals[1]))
 
 # As = [IndexedMatrix(ParallelMatrix(pdct), freq) for freq in freqs]
 #As = map(x -> FatFFTPlan(pdct, x), frequencies)

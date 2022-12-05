@@ -13,14 +13,15 @@ using DataFrames: DataFrame, AbstractDataFrame
 using Infiltrator: @infiltrate
 
 include("VaeModels.jl")
+include("measurementsampling.jl")
+include("recoveryalgorithms.jl")
+include("preprocess.jl")
+include("plot.jl")
 include("utils.jl")
-include("base.jl")
 include("experimentfunctions/index.jl")
-include("relaxedrecovery.jl")
-include("scripts.jl")
 
 
-export relaxed_recover, addreshape_tomodel, runexperimenttensor, FatFFTPlan, ParallelFFTPlan
+export relaxed_recover, addreshape_tomodel, runexperimenttensor
 export plot_MNISTrecoveries, compare_models_MNISTrecoveries, recoverythreshold_fromrandomimage
 export compare_models_from_thresholds, plot_models_recovery_errors
 export FullVae, VaeEncoder, makeMNISTVae, trainVae, trainstdVaeonMNIST, train_incoherentVAE_onMNIST

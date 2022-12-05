@@ -73,14 +73,6 @@ end
 
 
 
-import Base: *
-
-struct IndexedMatrix{T,L}
-    A::T
-    indices::L
-end
-
-*(indexedMatrix::IndexedMatrix, x::AbstractArray) = (indexedMatrix.A*x)[indexedMatrix.indices]
 
 function inversesigmoid(y; clampmargin=1.0f-3)
     y = clamp(y, 0.0f0 + clampmargin, 1.0f0 - clampmargin)

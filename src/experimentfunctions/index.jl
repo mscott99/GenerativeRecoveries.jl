@@ -5,7 +5,7 @@
 #include("generativecompressedsensing.jl")
 #include("plottingfunctions.jl")
 
-"Makes the true signal of the correct type and shape"
+"DEPRECATED: Makes the true signal of the correct type and shape"
 function _preprocess_MNIST_truesignal(img, VAE::Union{FullVae,ComposedFunction}, presigmoid, inrange; rng=TaskLocalRNG())
 
     function inversesigmoid(y; clampmargin=1.0f-3)
