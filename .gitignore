@@ -10,3 +10,5 @@ logs/
 /test/testscratchpaper.jl
 *.code-workspace
 /datasets/
+test/.DS_Store
+/experiment_data

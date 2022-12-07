@@ -75,7 +75,8 @@ function experimentgetrelative_error(truesignal, frequency, model, pdct, recover
     Dict(:relerr => relativeerr)
 end
 
-function plot_recovery_errors_tocompare_frequencysamplingalgorithms(model, images, aimed_ms, sampleevenlyfn, sampleunevenlyfn, img_size; presigmoid=true, inrange=true, datasplit=:test, multithread=false, kwargs...)
+
+function get_recovery_errors_tocompare_frequencysamplingalgorithms(model, images, aimed_ms, sampleevenlyfn, sampleunevenlyfn, img_size; presigmoid=true, inrange=true, datasplit=:test, multithread=false, kwargs...)
     model = _setupmodel(model; presigmoid)
     samplingfnlabels = ["even", "uneven"]
     samplingfndict = Dict("even" => sampleevenlyfn, "uneven" => sampleunevenlyfn)
@@ -88,15 +89,18 @@ function plot_recovery_errors_tocompare_frequencysamplingalgorithms(model, image
     transform!(frame, [:numfrequencies, :algname] => ByRow((m, algname) -> samplingfndict[algname](m, img_size)) => :sampledfrequencies)
     transform!(frame, [:truesignal, :sampledfrequencies] => ByRow((truesignal, frequency) -> experimentgetrelative_error(truesignal, frequency, decoder, pdct, recoversignal; kwargs...)) => AsTable)
 
-    frame = combine(groupby(frame, [:numfrequencies, :algname]), :relerr, :algname, :relerr => mean => :meanrelerr, :relerr => std => :std_deviation)
-    transform!(frame, [:meanrelerr, :std_deviation] => ByRow((meanrelerr, std_deviation) -> meanrelerr .+ std_deviation) => :topuncert)
-    transform!(frame, [:meanrelerr, :std_deviation] => ByRow((meanrelerr, std_deviation) -> meanrelerr .- std_deviation) => :botuncert)
+    frame = combine(groupby(frame, [:numfrequencies, :algname]), :relerr, :algname, :relerr => mean => :meanrelerr, :relerr => std => :std_deviation, :relerr => (x -> 10^(mean(log10.(x)) - std(log10.(x)))) => :botuncert, :relerr => (x -> 10^(mean(log10.(x)) + std(log10.(x)))) => :topuncert)
+    #plot_scatter_band(frame)
+end
 
-    mapmargins = mapping(:numfrequencies, :botuncert, :topuncert) * visual(AlgebraOfGraphics.Band) * visual(alpha=0.2)
-    mapmeans = mapping(:numfrequencies, :meanrelerr) * visual(AlgebraOfGraphics.Lines)
-    mapscatter = mapping(:numfrequencies, :relerr) * visual(AlgebraOfGraphics.Scatter)
+function plot_recovery_errors_tocompare_frequencysamplingalgorithms(model, images, aimed_ms, sampleevenlyfn, sampleunevenlyfn, img_size; presigmoid=true, inrange=true, datasplit=:test, multithread=false, kwargs...)
+    frame = get_recovery_errors_tocompare_frequencysamplingalgorithms(model, images, aimed_ms, sampleevenlyfn, sampleunevenlyfn, img_size; presigmoid, inrange, datasplit, multithread, kwargs...)
+    transform!(frame, :numfrequencies => (x -> x ./ 784) => :normalizednumfrequencies)
+
+    mapmargins = mapping(:normalizednumfrequencies, :botuncert, :topuncert) * visual(AlgebraOfGraphics.Band) * visual(alpha=0.2)
+    mapmeans = mapping(:normalizednumfrequencies, :meanrelerr) * visual(AlgebraOfGraphics.Lines)
+    mapscatter = mapping(:normalizednumfrequencies, :relerr) * visual(AlgebraOfGraphics.Scatter)
     plt = AlgebraOfGraphics.data(frame) * (mapmargins + mapmeans + mapscatter) * mapping(color=:algname => "Sampling Type")
-    draw(plt, axis=(; xscale=log10, yscale=log10, xlabel="Number of Sampled Frequencies", ylabel="Relative Recovery Error"))
-
+    re = draw(plt; axis=(; xscale=log10, yscale=log10, xlabel="Rate of Frequency Sampling", ylabel="Relative Recovery Error"))
     #plot_scatter_band(frame)
 end
