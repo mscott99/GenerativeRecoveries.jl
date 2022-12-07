@@ -8,8 +8,8 @@
 end
 
 @testset "test sampling functions" begin
-    using GenerativeRecoveries: sampledeterministicallyfirstfrequencies, getdeterministicanduniformfrequencies
+    using GenerativeRecoveries: sampledeterministicallyfirstfrequencies, samplefrequenciesuniformlyanddeterministically
     @test sum(sampledeterministicallyfirstfrequencies(10000, (20, 25, 30, 20, 10))) / 10000 ≤ 0.1
-    testfreq = getdeterministicanduniformfrequencies(44, 26, (60, 40, 2, 1, 1))
+    testfreq = samplefrequenciesuniformlyanddeterministically(44, 26, (60, 40, 2, 1, 1))
     @test sum(testfreq) == 44 + 26
 end

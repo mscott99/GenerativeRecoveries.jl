@@ -1,15 +1,17 @@
 module GenerativeRecoveries
+using CairoMakie
+using AlgebraOfGraphics
 using BSON
 using BSON: @save, @load
 using Distributions: Bernoulli
 using Base.Threads
-using Images, LsqFit, Plots, Printf
+using Images, LsqFit, Printf
 using Random, Flux, MLDatasets, FFTW, LinearAlgebra
 using Logging, TensorBoardLogger
 using CairoMakie: Axis, CairoMakie, Figure, Label, hidedecorations!, heatmap!
 using Flux: Chain, params, gradient, update!, Adam
 using FFTW: plan_dct
-using DataFrames: DataFrame, AbstractDataFrame
+using DataFrames
 using Infiltrator: @infiltrate
 using SpecialFunctions: gamma
 

@@ -12,6 +12,7 @@
 using Test
 using Flux
 using BSON: @load
+using CairoMakie: Figure
 
 include("./testexperiments.jl")
 include("./testutils.jl")

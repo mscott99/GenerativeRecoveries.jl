@@ -1,5 +1,7 @@
 @testset "check runexperiments" begin
-    using GenerativeRecoveries: FullVae, recoversignal, wrap_model_withreshape, VaeEncoder, _setupmodels, _setupMNISTimagesignals, _setupfrequencies, IndexedMatrix, runexperimenttensor
+    using GenerativeRecoveries: plot_recovery_errors_tocompare_frequencysamplingalgorithms, samplefrequenciesuniformly, samplefrequenciesuniformlyanddeterministically, FullVae, recoversignal, wrap_model_withreshape, VaeEncoder, _setupmodels, _setupMNISTimagesignals, _setupfrequencies, IndexedMatrix, runexperimenttensor
+    using GenerativeRecoveries: samplefrequenciesuniformly, samplefrequenciesuniformlyanddeterministically
+    using DataFrames: DataFrame
     using FFTW: plan_dct
     using LinearAlgebra: norm
     using DataFrames: DataFrame
@@ -14,6 +16,13 @@
     freqs = _setupfrequencies(aimedmeasurementnumbers, size(truesignals[1]))
     pdct = plan_dct(truesignals[1])
     pdct * truesignals[1]
+
+    img_size = (28, 28)
+    numbers = [2, 3, 4]
+    aimed_ms = [16, 128]
+    #check no error
+    plot_recovery_errors_tocompare_frequencysamplingalgorithms(model, numbers, aimed_ms, samplefrequenciesuniformly, samplefrequenciesuniformlyanddeterministically, img_size; max_iter=5)
+
     #FatFFTPlan(pdct, frequencies[1])
     # mystery error here
     freqs = _setupfrequencies([16, 32, 64], size(truesignals[1]))

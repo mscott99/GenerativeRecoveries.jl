@@ -1,4 +1,3 @@
-using Plots
 using LaTeXStrings
 using Hyperopt
 

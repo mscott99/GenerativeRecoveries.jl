@@ -12,17 +12,29 @@ function getuniformlysampledfrequencieswithreplacement(aimed_m::Integer, img_siz
     rand(rng, Bernoulli(aimed_m / prod(img_size)), img_size...)
 end
 
-function getdeterministicanduniformfrequencies(deterministic_m::Integer, uniform_m::Integer, img_size::Tuple{Vararg{Int}}; rng=TaskLocalRNG(), kwargs...)
+function samplefrequenciesuniformly(num_frequencies, img_size::Tuple{Vararg{Int}}; rng=TaskLocalRNG(), kwargs...)
+    base = zeros(Bool, img_size...)
+    addsamplinguniformlyatrandom!(base, num_frequencies; rng=rng, kwargs...)
+    return base
+end
+
+function samplefrequenciesuniformlyanddeterministically(deterministic_m::Integer, uniform_m::Integer, img_size::Tuple{Vararg{Int}}; rng=TaskLocalRNG(), kwargs...)
     dim = length(img_size)
     num_orthants = 2^dim
     volume = deterministic_m * num_orthants
     radius = volume^(1 / dim) * gamma(dim / 2 + 1)^(1 / dim) / sqrt(π)
     frequencysamplingarray = BitArray((sum(abs2, Tuple(index) .- 0.5) ≤ radius^2 for index in CartesianIndices(img_size)))
-    addsamplinguniformlyatrandom!(deterministic_m + uniform_m - sum(frequencysamplingarray), frequencysamplingarray)
+    addsamplinguniformlyatrandom!(frequencysamplingarray, deterministic_m + uniform_m - sum(frequencysamplingarray))
     frequencysamplingarray
 end
 
-function addsamplinguniformlyatrandom!(numtoadd::Integer, frequencysamplingarray::AbstractArray{<:Bool})
+function samplefrequenciesuniformlyanddeterministically(aimed_m::Integer, img_size::Tuple{Vararg{<:Integer}}; rng=TaskLocalRNG())
+    deterministic_m = round(Int, aimed_m / 2)
+    uniform_m = aimed_m - deterministic_m
+    samplefrequenciesuniformlyanddeterministically(deterministic_m, uniform_m, img_size; rng=rng)
+end
+
+function addsamplinguniformlyatrandom!(frequencysamplingarray::AbstractArray{<:Bool}, numtoadd::Integer; rng=TaskLocalRNG())
     indexset = CartesianIndices(size(frequencysamplingarray))
     while numtoadd != 0
         tryindex = rand(indexset)
