@@ -18,6 +18,18 @@ function samplefrequenciesuniformly(num_frequencies, img_size::Tuple{Vararg{Int}
     return base
 end
 
+function samplefromarray(a, num_elements; rng=Random.GLOBAL_RNG)
+    picked_indices = []
+    while num_elements > 0
+        index = rand(1:length(a))
+        if index ∉ picked_indices
+            push!(picked_indices, index)
+            num_elements -= 1
+        end
+    end
+    return a[picked_indices]
+end
+
 function samplefrequenciesuniformlyanddeterministically(deterministic_m::Integer, uniform_m::Integer, img_size::Tuple{Vararg{Int}}; rng=TaskLocalRNG(), kwargs...)
     dim = length(img_size)
     num_orthants = 2^dim

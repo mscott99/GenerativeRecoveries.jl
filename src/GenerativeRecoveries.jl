@@ -2,15 +2,18 @@ module GenerativeRecoveries
 using CairoMakie
 using AlgebraOfGraphics
 using BSON
+using MLDatasets: MNIST, FunctionalFileDataset, FunctionalSubDataset
 using BSON: @save, @load
 using Distributions: Bernoulli
 using Base.Threads
 using Images, LsqFit, Printf
-using Random, Flux, MLDatasets, FFTW, LinearAlgebra
+using Random, Flux, MLDatasets, FFTW, LinearAlgebra, Statistics
 using Logging, TensorBoardLogger
+using ProgressLogging: @progress, Progress
 using CairoMakie: Axis, CairoMakie, Figure, Label, hidedecorations!, heatmap!
-using Flux: Chain, params, gradient, update!, Adam
-using FFTW: plan_dct
+using Flux: Chain, gradient, update!, Adam, logitbinarycrossentropy, pullback, DataLoader, params
+using FFTW: plan_dct, plan_fft
+using StatsBase: sample
 using DataFrames
 using Infiltrator: @infiltrate
 using SpecialFunctions: gamma

@@ -6,7 +6,6 @@ using Flux: @epochs, train!, params, DataLoader
 using CUDA
 using Test: @testset, @test
 using BSON: @load
-#dataset = FileDataset("~/.julia/DataDeps/CELEBA/img_align_celeba/")
 
 @load "savedmodels/bounded_morecoherencematchingepoch20" model
 

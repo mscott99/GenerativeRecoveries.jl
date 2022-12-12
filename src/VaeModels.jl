@@ -1,18 +1,9 @@
-using Flux, MLDatasets
-using Flux: logitbinarycrossentropy, pullback, DataLoader, params
-using BSON: @save
-using Statistics, LinearAlgebra, FFTW
-using Logging, ProgressLogging, TensorBoardLogger
-using Random
-
-
 struct VaeEncoder{T,V,L}
     encoderbody::T
     splitedμ::V
     splitedlogvar::L
 end
 Flux.@functor VaeEncoder
-
 
 function (m::VaeEncoder)(x::AbstractArray)
     intermediate = m.encoderbody(x)

@@ -49,10 +49,23 @@ function _setupmodels(model::FullVae; kwargs...)
     _setupmodels([model]; kwargs...)
 end
 
+getcelebafilename(i::Integer) = lpad(i, 6, "0") * ".jpg"
 
+function _getCELEBAdataset(datasplit=:all)
+    train_test_split = 0.7
+    dataset = FunctionalFileDataset("/Users/matthewscott/.julia/datadeps/CELEBA/img_align_celeba/", getcelebafilename)
+    if datasplit in (:train, :test)
+        return FunctionalSubDataset(dataset, datasplit, train_test_split)
+    else
+        return dataset
+    end
+end
 
-# function _getMNISTimagesignals(numbers::Vector{<:Integer}, fullmodel::AbstractArray{<:FullVae}; datasplit=:test, presigmoid=true, inrange=true, rng=TaskLocalRNG(), kwargs...)
-
+function setupCELEBAimagesignals(numImages::Int; datasplit=:test, rng=TaskLocalRNG(), kwargs...)
+    dataset = _getCELEBAdataset(:test)
+    images = samplefromarray(dataset, numImages, rng=rng)
+    (x -> float32.(x)).(permutedims.(channelview.(images), [(2, 3, 1)]))
+end
 
 
 """

@@ -4,7 +4,7 @@ using BSON: @load
 using Revise
 using FFTW: plan_dct
 using GenerativeRecoveries
-using GenerativeRecoveries: get_recovery_errors_tocompare_frequencysamplingalgorithms, wrap_model_withreshape, plot_recovery_errors_tocompare_frequencysamplingalgorithms, _setupMNISTimagesignals, samplefrequenciesuniformly, samplefrequenciesuniformlyanddeterministically, _setupmodel, IndexedMatrix, recoversignal, runexperimenttensor, _setupfrequencies, _plot_tables_ofrecoveries, plot_MNISTrecoveries, plot_MNISTrecoveryerrors
+using GenerativeRecoveries: plot_recovery_errors_tocompare_frequencysamplingalgorithms, get_recovery_errors_tocompare_frequencysamplingalgorithms, wrap_model_withreshape, plot_recovery_errors_tocompare_frequencysamplingalgorithms, _setupMNISTimagesignals, samplefrequenciesuniformly, samplefrequenciesuniformlyanddeterministically, _setupmodel, IndexedMatrix, recoversignal, runexperimenttensor, _setupfrequencies, _plot_tables_ofrecoveries, plot_MNISTrecoveries, plot_MNISTrecoveryerrors
 @load "savedmodels/more_incoherentepoch20" model
 model = wrap_model_withreshape(model)
 using DataFrames
@@ -12,18 +12,21 @@ using DataFrames: allcombinations, DataFrame, transform!
 using LinearAlgebra: norm
 using Statistics
 using AlgebraOfGraphics, CairoMakie
+using GenerativeRecoveries: setupCELEBAimagesignals
+
 presigmoid = true
 inrange = true
 kwargs = (;)
 
 img_size = (28, 28)
-numbers = [0,1, 2, 3,3,4,4,5,5,6,6,7,7,8,8,9]
-aimed_ms = [8, 16, 24,32,50,64,100,128,256, 784]
-aimed_ms = [8,10,16,24,32,64, 128,784]
+numbers = [0, 1, 2]
+aimed_ms = [50, 64, 100]
+aimed_ms = [8, 10, 16, 24, 32, 64, 128, 784]
 set_aog_theme!()
-frame = get_recovery_errors_tocompare_frequencysamplingalgorithms(model, numbers, aimed_ms, samplefrequenciesuniformly, samplefrequenciesuniformlyanddeterministically, img_size; max_iter = 1000)
+plot_recovery_errors_tocompare_frequencysamplingalgorithms(model, numbers, aimed_ms, samplefrequenciesuniformly, samplefrequenciesuniformlyanddeterministically, img_size; max_iter=10)
+frame = get_recovery_errors_tocompare_frequencysamplingalgorithms(model, numbers, aimed_ms, samplefrequenciesuniformly, samplefrequenciesuniformlyanddeterministically, img_size; max_iter=1000)
 
-transform!(frame, :numfrequencies => (x -> x./784 ) => :normalizednumfrequencies)
+transform!(frame, :numfrequencies => (x -> x ./ 784) => :normalizednumfrequencies)
 
 mapmargins = mapping(:normalizednumfrequencies, :botuncert, :topuncert) * visual(AlgebraOfGraphics.Band) * visual(alpha=0.2)
 mapmeans = mapping(:normalizednumfrequencies, :meanrelerr) * visual(AlgebraOfGraphics.Lines)
@@ -31,7 +34,7 @@ mapscatter = mapping(:normalizednumfrequencies, :relerr) * visual(AlgebraOfGraph
 plt = AlgebraOfGraphics.data(frame) * (mapmargins + mapmeans + mapscatter) * mapping(color=:algname => "Sampling Type")
 re = draw(plt; axis=(; xscale=log10, yscale=log10, xlabel="Rate of Frequency Sampling", ylabel="Relative Recovery Error"))
 
-save("./experiment_data/compare_frequency_sampling_schemes_by_recovery_error.png",re)
+save("./experiment_data/compare_frequency_sampling_schemes_by_recovery_error.png", re)
 
 images = numbers
 sampleevenlyfn = samplefrequenciesuniformly
@@ -64,12 +67,12 @@ end
 decoder = model.decoder
 #transform_inparallel!(frame, ((truesignal, frequency)-> experimentgetrelative_error(truesignal, frequency, decoder, pdct, recoversignal)), [:truesignal, :sampledfrequencies], :relerr, Float32)
 
-transform!(frame, [:truesignal, :sampledfrequencies] => ByRow((truesignal, frequency) -> experimentgetrelative_error(truesignal, frequency, decoder, pdct, recoversignal; max_iter = 10,kwargs...)) => AsTable)
-filter(row -> isnan(row.relerr) || row.numfrequencies <0.2, frame)
+transform!(frame, [:truesignal, :sampledfrequencies] => ByRow((truesignal, frequency) -> experimentgetrelative_error(truesignal, frequency, decoder, pdct, recoversignal; max_iter=10, kwargs...)) => AsTable)
+filter(row -> isnan(row.relerr) || row.numfrequencies < 0.2, frame)
 min(frame.numfrequencies...)
 #transform!(frame, :relerr => (x -> log10.(x)) => :logrelerr)
 
-frame = combine(groupby(frame, [:numfrequencies, :algname]), :relerr, :algname, :relerr => mean => :meanrelerr, :relerr => std => :std_deviation, :relerr => (x -> 10^(mean(log10.(x)) - std(log10.(x))))=> :botuncert, :relerr => (x -> 10^(mean(log10.(x)) + std(log10.(x))))=> :topuncert)
+frame = combine(groupby(frame, [:numfrequencies, :algname]), :relerr, :algname, :relerr => mean => :meanrelerr, :relerr => std => :std_deviation, :relerr => (x -> 10^(mean(log10.(x)) - std(log10.(x)))) => :botuncert, :relerr => (x -> 10^(mean(log10.(x)) + std(log10.(x)))) => :topuncert)
 
 #transform!(frame, [:meanrelerr, :std_deviation] => ByRow((meanrelerr, std_deviation) -> meanrelerr .+ std_deviation) => :topuncert)
 #transform!(frame, [:meanrelerr, :std_deviation] => ByRow((meanrelerr, std_deviation) -> meanrelerr .- std_deviation) => :botuncert)
@@ -77,8 +80,8 @@ frame = combine(groupby(frame, [:numfrequencies, :algname]), :relerr, :algname, 
 mapmargins = mapping(:numfrequencies, :botuncert, :topuncert) * visual(AlgebraOfGraphics.Band) * visual(alpha=0.2)
 mapmeans = mapping(:numfrequencies, :meanrelerr) * visual(AlgebraOfGraphics.Lines)
 mapscatter = mapping(:numfrequencies, :relerr) * visual(AlgebraOfGraphics.Scatter)
-plt = AlgebraOfGraphics.data(frame) * (mapmargins+ mapmeans + mapscatter) * mapping(color=:algname => "Sampling Type")
-draw(plt; axis=(xscale = log10, yscale=log10))
+plt = AlgebraOfGraphics.data(frame) * (mapmargins + mapmeans + mapscatter) * mapping(color=:algname => "Sampling Type")
+draw(plt; axis=(xscale=log10, yscale=log10))
 
 
 
@@ -89,11 +92,11 @@ transform!(statsdf, [:meanrelerr, :std_deviation] => ByRow((meanrelerr, std_devi
 
 using CairoMakie
 
-mapmargins = mapping(:numfrequencies, :botuncert, :topuncert)*visual(AlgebraOfGraphics.Band)*visual(alpha=0.2)
-mapmeans = mapping(:numfrequencies, :meanrelerr)*visual(AlgebraOfGraphics.Lines)
-mapscatter = mapping(:numfrequencies, :relerr)*visual(AlgebraOfGraphics.Scatter)
-plt = data(statsdf)*(mapmargins + mapmeans + mapscatter)*mapping(color=:algname => "Sampling Type")
-draw(plt, axis = (;xscale=log10, yscale=log10))
+mapmargins = mapping(:numfrequencies, :botuncert, :topuncert) * visual(AlgebraOfGraphics.Band) * visual(alpha=0.2)
+mapmeans = mapping(:numfrequencies, :meanrelerr) * visual(AlgebraOfGraphics.Lines)
+mapscatter = mapping(:numfrequencies, :relerr) * visual(AlgebraOfGraphics.Scatter)
+plt = data(statsdf) * (mapmargins + mapmeans + mapscatter) * mapping(color=:algname => "Sampling Type")
+draw(plt, axis=(; xscale=log10, yscale=log10))
 
 
 
@@ -102,9 +105,9 @@ using AlgebraOfGraphics: Band
 
 using AlgebraOfGraphics: Lines, linesfill
 scatterplt = data(df) * mapping(:numfrequencies, :relerr)
-linesplt = data(statsdf) * mapping(:numfrequencies, :meanrelerr) *mapping(color=:algname)* |> draw
+#linesplt = data(statsdf) * mapping(:numfrequencies, :meanrelerr) *mapping(color=:algname)* |> draw
 
-plt = (data(df) * mapping(:numfrequencies, :relerr) + ) * mapping(color=:algname) |> draw
+
 axis = (width=225, height=225)
 
 

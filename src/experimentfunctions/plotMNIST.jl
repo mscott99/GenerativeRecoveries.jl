@@ -63,7 +63,7 @@ function plot_MNISTrecoveryerrors(model::FullVae, samplingfunctions::Vector{<:Fu
     plot_recovery_errors(resultdataframe)
 end
 
-function experimentgetrelative_error(truesignal, frequency, model, pdct, recoveryfn; multithread=true, kwargs...)
+function _experimentgetrelative_error(truesignal, frequency, model, pdct, recoveryfn; multithread=true, kwargs...)
     #if multithread
     #     pdct = deepcopy(pdct)
     # end
@@ -87,7 +87,7 @@ function get_recovery_errors_tocompare_frequencysamplingalgorithms(model, images
 
     frame = allcombinations(DataFrame, (:truesignal => truesignals), (:numfrequencies => aimed_ms), (:algname => samplingfnlabels))
     transform!(frame, [:numfrequencies, :algname] => ByRow((m, algname) -> samplingfndict[algname](m, img_size)) => :sampledfrequencies)
-    transform!(frame, [:truesignal, :sampledfrequencies] => ByRow((truesignal, frequency) -> experimentgetrelative_error(truesignal, frequency, decoder, pdct, recoversignal; kwargs...)) => AsTable)
+    transform!(frame, [:truesignal, :sampledfrequencies] => ByRow((truesignal, frequency) -> _experimentgetrelative_error(truesignal, frequency, decoder, pdct, recoversignal; kwargs...)) => AsTable)
 
     frame = combine(groupby(frame, [:numfrequencies, :algname]), :relerr, :algname, :relerr => mean => :meanrelerr, :relerr => std => :std_deviation, :relerr => (x -> 10^(mean(log10.(x)) - std(log10.(x)))) => :botuncert, :relerr => (x -> 10^(mean(log10.(x)) + std(log10.(x)))) => :topuncert)
     #plot_scatter_band(frame)
@@ -104,3 +104,9 @@ function plot_recovery_errors_tocompare_frequencysamplingalgorithms(model, image
     re = draw(plt; axis=(; xscale=log10, yscale=log10, xlabel="Rate of Frequency Sampling", ylabel="Relative Recovery Error"))
     #plot_scatter_band(frame)
 end
+
+
+
+
+
+
