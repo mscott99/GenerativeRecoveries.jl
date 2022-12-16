@@ -12,3 +12,4 @@ logs/
 /datasets/
 test/.DS_Store
 /experiment_data
+/test/testscratchpaper.jl

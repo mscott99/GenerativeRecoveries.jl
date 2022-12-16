@@ -1,4 +1,3 @@
-
 # subsampled dct
 import Base: *
 struct IndexedMatrix{T,L}

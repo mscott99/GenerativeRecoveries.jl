@@ -1,4 +1,3 @@
-
 """
 Plot a matrix of recovery images by number for different measurement numbers
 The VAE and VAE decoder should never have a final activation
@@ -63,7 +62,7 @@ function plot_MNISTrecoveryerrors(model::FullVae, samplingfunctions::Vector{<:Fu
     plot_recovery_errors(resultdataframe)
 end
 
-function _experimentgetrelative_error(truesignal, frequency, model, pdct, recoveryfn; multithread=true, kwargs...)
+function _experimentgetrelative_error(truesignal, frequency, model, pdct, recoveryfn=recoversignal; multithread=true, kwargs...)
     #if multithread
     #     pdct = deepcopy(pdct)
     # end
