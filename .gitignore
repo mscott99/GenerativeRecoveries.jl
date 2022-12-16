@@ -1,0 +1,10 @@
+.ipynb_checkpoints
+.DS_Store
+.vscode
+logs/
+/models/
+/experiment_data/ansdata.BSON
+/experiment_data
+/savedmodels
+/datasets/
+/test/testscratchpaper.jl
