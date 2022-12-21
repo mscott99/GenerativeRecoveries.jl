@@ -9,7 +9,7 @@ function plot_MNISTrecoveries(model::FullVae, aimedmeasurementnumbers, images, r
         if multithread
             pdct = deepcopy(pdct)
         end
-        A = IndexedMatrix(pdct, frequency)
+        A = ComplexIndexedMatrix(pdct, frequency)
         measurements = A * truesignal
         recoveryimg = recoveryfn(measurements, A, model; kwargs...)
         relativeerr = norm(recoveryimg .- truesignal) / norm(truesignal)
@@ -21,7 +21,7 @@ function plot_MNISTrecoveries(model::FullVae, aimedmeasurementnumbers, images, r
     truesignals = _setupMNISTimagesignals(images, model; datasplit, presigmoid, inrange, kwargs...)
     # not well adapted to the in range case with many models; for that we need a notion of dependence when running experiments. Probably a callback.
     freqs = _setupfrequencies(aimedmeasurementnumbers, size(truesignals[1]))
-    pdct = plan_dct(truesignals[1])
+    pdct = plan_fft(truesignals[1])
 
     setuplabels = (:truesignal, :frequency)
     experimentsetup = (truesignals, freqs)

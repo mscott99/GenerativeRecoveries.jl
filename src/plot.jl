@@ -25,7 +25,7 @@ function _plot_tableofrecoveries(df::AbstractDataFrame; presigmoid=true, plotwid
     numfrequencies = length(unique(df[!, :frequency_index]))
     numnumbers = length(unique(df[!, :truesignal_index]))
     f = Figure(resolution=(plotwidth * (numfrequencies + 1), plotwidth * numnumbers + plotwidth / 2), backgroundcolor=:lightgrey)
-    Label(f[1, 1], "signal", tellheight=true, tellwidth=false, textsize=20)
+    Label(f[1, 1], "signal", tellheight=true, tellwidth=false, fontsize=20)
 
     signalimages = unique(df[:, [:truesignal, :truesignal_index]])
     for signalrow in eachrow(signalimages)
@@ -46,7 +46,7 @@ function _plot_tableofrecoveries(df::AbstractDataFrame; presigmoid=true, plotwid
     select!(frequencies_num_measurements, :frequency_index, :frequency => (x -> sum.(x)) => :m)
 
     for frequency_instance in eachrow(frequencies_num_measurements)
-        Label(f[1, frequency_instance[:frequency_index]+1], "m:$(frequency_instance[:m])", tellheight=true, tellwidth=false, textsize=20)
+        Label(f[1, frequency_instance[:frequency_index]+1], "m:$(frequency_instance[:m])", tellheight=true, tellwidth=false, fontsize=20)
     end
     f
 end

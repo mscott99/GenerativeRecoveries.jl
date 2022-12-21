@@ -13,3 +13,4 @@ logs/
 test/.DS_Store
 /experiment_data
 /test/testscratchpaper.jl
+test/testscratch.jl

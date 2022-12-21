@@ -27,7 +27,7 @@ include("utils.jl")
 include("experimentfunctions/index.jl")
 
 
-export relaxed_recover, addreshape_tomodel, runexperimenttensor
+export relaxed_recover, runexperimenttensor, wrap_model_withreshape
 export plot_MNISTrecoveries, compare_models_MNISTrecoveries, recoverythreshold_fromrandomimage
 export compare_models_from_thresholds, plot_models_recovery_errors
 export FullVae, VaeEncoder, makeMNISTVae, trainVae, trainstdVaeonMNIST, train_incoherentVAE_onMNIST

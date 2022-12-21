@@ -6,6 +6,12 @@ struct IndexedMatrix{T,L}
 end
 *(indexedMatrix::IndexedMatrix, x::AbstractArray) = (indexedMatrix.A*x)[indexedMatrix.indices]
 
+struct ComplexIndexedMatrix{T,L}
+    A::T
+    indices::L
+end
+*(mat::ComplexIndexedMatrix, x::AbstractArray) = (mat.A*Complex.(x))[mat.indices]
+
 # getting random frequencies
 function getuniformlysampledfrequencieswithreplacement(aimed_m::Integer, img_size::Tuple{Vararg{Int}}; rng=TaskLocalRNG(), kwargs...)
     rand(rng, Bernoulli(aimed_m / prod(img_size)), img_size...)
