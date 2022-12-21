@@ -8,8 +8,10 @@
 end
 
 @testset "test sampling functions" begin
-    using GenerativeRecoveries: samplefromarray, sampledeterministicallyfirstfrequencies, samplefrequenciesuniformlyanddeterministically
-    @test sum(sampledeterministicallyfirstfrequencies(10000, (20, 25, 30, 20, 10))) / 10000 ≤ 0.1
+    using GenerativeRecoveries: samplefromarray, samplesmallestfrequencies, samplefrequenciesuniformlyanddeterministically, _modminimizeindex
+    @test _modminimizeindex(CartesianIndex(1, 28), (28, 28)) == [0, 1]
+    @test (sum(samplesmallestfrequencies(1000, (20, 25, 30, 20, 10), dct=false)) / 1000.0 - 1.0) ≤ 0.1
+    @test (sum(samplesmallestfrequencies(1000, (20, 25, 30, 20, 10), dct=true)) / 1000.0 - 1.0) ≤ 0.1
     testfreq = samplefrequenciesuniformlyanddeterministically(44, 26, (60, 40, 2, 1, 1))
     @test sum(testfreq) == 44 + 26
     @test length(samplefromarray([1, 2, 3], 2)) == 2

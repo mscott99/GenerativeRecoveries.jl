@@ -35,20 +35,41 @@ function samplefromarray(a, num_elements; rng=Random.GLOBAL_RNG)
     return a[picked_indices]
 end
 
-function samplefrequenciesuniformlyanddeterministically(deterministic_m::Integer, uniform_m::Integer, img_size::Tuple{Vararg{Int}}; rng=TaskLocalRNG(), kwargs...)
+"get the indices with starting at zero and incrementing by distance to the origin"
+function _modminimizeindex(index, size)
+    newindex = collect(Tuple(index))
+    for (i, entry) in enumerate(newindex)
+        newindex[i] = min(entry - 1, size[i] + 1 - entry)
+    end
+    newindex
+end
+
+
+function samplesmallestfrequencies(m::Integer, img_size::Tuple{Vararg{Int}}; dct=false, kwargs...)
     dim = length(img_size)
-    num_orthants = 2^dim
-    volume = deterministic_m * num_orthants
-    radius = volume^(1 / dim) * gamma(dim / 2 + 1)^(1 / dim) / sqrt(π)
-    frequencysamplingarray = BitArray((sum(abs2, Tuple(index) .- 0.5) ≤ radius^2 for index in CartesianIndices(img_size)))
+    total_num_orthants = 2^dim
+    if dct
+        volume = m * total_num_orthants
+        radius = volume^(1 / dim) * gamma(dim / 2 + 1)^(1 / dim) / sqrt(π)
+        return BitArray((sum(abs2, Tuple(index) .- 0.5) ≤ radius^2 for index in CartesianIndices(img_size)))
+        # for some reason the 0.5 adjustment is better only for dct sampling numerically.
+    else
+        volume = m
+        radius = volume^(1 / dim) * gamma(dim / 2 + 1)^(1 / dim) / sqrt(π)
+        return BitArray((sum(abs2, _modminimizeindex(index, img_size)) ≤ radius^2 for index in CartesianIndices(img_size)))
+    end
+end
+
+function samplefrequenciesuniformlyanddeterministically(deterministic_m::Integer, uniform_m::Integer, img_size::Tuple{Vararg{Int}}; dct=false, rng=TaskLocalRNG(), kwargs...)
+    frequencysamplingarray = samplesmallestfrequencies(deterministic_m, img_size; dct)
     addsamplinguniformlyatrandom!(frequencysamplingarray, deterministic_m + uniform_m - sum(frequencysamplingarray))
     frequencysamplingarray
 end
 
-function samplefrequenciesuniformlyanddeterministically(aimed_m::Integer, img_size::Tuple{Vararg{<:Integer}}; rng=TaskLocalRNG())
+function samplefrequenciesuniformlyanddeterministically(aimed_m::Integer, img_size::Tuple{Vararg{<:Integer}}; dct=false, rng=TaskLocalRNG(), kwargs...)
     deterministic_m = round(Int, aimed_m / 2)
     uniform_m = aimed_m - deterministic_m
-    samplefrequenciesuniformlyanddeterministically(deterministic_m, uniform_m, img_size; rng=rng)
+    samplefrequenciesuniformlyanddeterministically(deterministic_m, uniform_m, img_size; dct=dct, rng=rng)
 end
 
 function addsamplinguniformlyatrandom!(frequencysamplingarray::AbstractArray{<:Bool}, numtoadd::Integer; rng=TaskLocalRNG())
@@ -71,8 +92,6 @@ function sampledeterministicallyfirstfrequencies(deterministic_m::Integer, img_s
     radius = volume^(1 / dim) * gamma(dim / 2 + 1)^(1 / dim) / sqrt(π)
     BitArray((sum(abs2, Tuple(index) .- 0.5) ≤ radius^2 for index in CartesianIndices(img_size)))
 end
-
-
 
 
 function sampleFourierwithoutreplacement(aimed_m, n; rng=TaskLocalRNG())
