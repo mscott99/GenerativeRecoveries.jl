@@ -13,20 +13,20 @@ function plot_MNISTrecoveries(model::FullVae, aimedmeasurementnumbers, images, r
         measurements = A * truesignal
         recoveryimg = recoveryfn(measurements, A, model; kwargs...)
         relativeerr = norm(recoveryimg .- truesignal) / norm(truesignal)
-        ((:recovered_signal => recoveryimg), (:relative_error => relativeerr))
+        Dict(:recovered_signal => recoveryimg, :relative_error => relativeerr, :num_frequencies => sum(frequency))
     end
 
     model = _setupmodel(model; presigmoid)
     decoder = model.decoder
     truesignals = _setupMNISTimagesignals(images, model; datasplit, presigmoid, inrange, kwargs...)
-    # not well adapted to the in range case with many models; for that we need a notion of dependence when running experiments. Probably a callback.
     freqs = _setupfrequencies(aimedmeasurementnumbers, size(truesignals[1]); dct=dct, kwargs...)
     pdct = dct ? plan_dct(truesignals[1]) : plan_fft(truesignals[1])
 
-    setuplabels = (:truesignal, :frequency)
-    experimentsetup = (truesignals, freqs)
-    fixedsetup = (decoder, pdct, recoveryfn)
-    resultdataframe = runexperimenttensor(experimentfn, experimentsetup, setuplabels, fixedsetup...; dct, kwargs...)
+    experimentsetup = ((:truesignal_index => eachindex(truesignals)), (:frequency_index => eachindex(freqs)))
+
+    resultdataframe = allcombinations(DataFrame, experimentsetup...)
+    transform!(resultdataframe, :truesignal_index => ByRow(ind -> truesignals[ind]) => :truesignal)
+    transform!(resultdataframe, [:truesignal, :frequency_index] => ByRow((truesignal, frequency_index) -> experimentfn(truesignal, freqs[frequency_index], decoder, pdct, recoveryfn; dct, kwargs...)) => AsTable)
     _plot_tables_ofrecoveries(resultdataframe; presigmoid) # in progress
 end
 
@@ -44,7 +44,8 @@ function plot_MNISTrecoveryerrors(model::FullVae, samplingfunctions::Vector{<:Fu
     end
 
     truesignals = _setupMNISTimagesignals(images, model; datasplit, presigmoid, inrange, kwargs...)
-    freqs = [frequencyfunction(aimed_m) for aimed_m in aimedmeasurementnumbers for frequencyfunction in samplingfunctions]
+    signalsize = size(truesignals[1])
+    freqs = [frequencyfunction(aimed_m, signalsize) for aimed_m in aimedmeasurementnumbers for frequencyfunction in samplingfunctions]
     # make table of frequencies and specify two labels. pass this to runexperiments. 
     _setupfrequencies(aimedmeasurementnumbers, size(truesignals[1]))
 

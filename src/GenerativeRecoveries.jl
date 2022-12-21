@@ -15,6 +15,7 @@ using Flux: Chain, gradient, update!, Adam, logitbinarycrossentropy, pullback, D
 using FFTW: plan_dct, plan_fft
 using StatsBase: sample
 using DataFrames
+using DataFrames: allcombinations
 using Infiltrator: @infiltrate
 using SpecialFunctions: gamma
 

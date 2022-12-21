@@ -2,10 +2,11 @@
 Run a tensor of experiments from pre-computed states.
 Integer indices index both the results and the state used in the experiment
 """
-function runexperimenttensor(experimentfn::Function, experimentsetup::Tuple, setupsymbols::Tuple, args...; include_values=true, kwargs...)::DataFrame
+function runexperimenttensor(experimentfn::Function, experimentsetup::Tuple, setupsymbols::Tuple, args...; kwargs...)::DataFrame
     multithread = false # multithreading not functional right now; first have to check type safety
     #result_type = typeof(experimentfn((experimentsetup[i][1] for i in 1:length(experimentsetup))..., args...; kwargs...))
     #results = Array{result_type}(undef, length.(experimentsetup))
+    include_values = true #always include values
     if !multithread   # still needs testing
         first = true
         df = nothing # initialize symbol for scope purposes

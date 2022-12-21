@@ -42,11 +42,10 @@ function _plot_tableofrecoveries(df::AbstractDataFrame; presigmoid=true, plotwid
     end
 
     # compute the true frequency numbers
-    frequencies_num_measurements = unique(select(df, :frequency_index, :frequency))
-    select!(frequencies_num_measurements, :frequency_index, :frequency => (x -> sum.(x)) => :m)
+    frequencies_num_measurements = unique(select(df, :frequency_index, :num_frequencies))
 
     for frequency_instance in eachrow(frequencies_num_measurements)
-        Label(f[1, frequency_instance[:frequency_index]+1], "m:$(frequency_instance[:m])", tellheight=true, tellwidth=false, fontsize=20)
+        Label(f[1, frequency_instance[:frequency_index]+1], "m:$(frequency_instance[:num_frequencies])", tellheight=true, tellwidth=false, fontsize=20)
     end
     f
 end
