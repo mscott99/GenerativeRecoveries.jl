@@ -19,36 +19,62 @@ using DataFrames: transform!, select, select!, transform
 "Plot table of recoveries by frequency and recovery signals"
 function _plot_tableofrecoveries(df::AbstractDataFrame; presigmoid=true, plotwidth=200, kwargs...)
     if presigmoid
-        df = transform(df, :recovered_signal => sigmoid => :recovered_signal)
-        transform!(df, :truesignal => sigmoid => :truesignal)
+        df = transform(df, :recoveredsignals => sigmoid => :recoveredsignals)
+        transform!(df, :truesignals => sigmoid => :truesignals)
     end
-    numfrequencies = length(unique(df[!, :frequency_index]))
-    numnumbers = length(unique(df[!, :truesignal_index]))
+    numfrequencies = length(unique(df[!, :frequencyindex]))
+    truesignals = df[1, :truesignals]
+    numnumbers = size(truesignals, 4)
+    #length(unique(df[!, :truesignal_index]))
     f = Figure(resolution=(plotwidth * (numfrequencies + 1), plotwidth * numnumbers + plotwidth / 2), backgroundcolor=:lightgrey)
     Label(f[1, 1], "signal", tellheight=true, tellwidth=false, fontsize=20)
 
-    signalimages = unique(df[:, [:truesignal, :truesignal_index]])
-    for signalrow in eachrow(signalimages)
-        ax = Axis(f[signalrow[:truesignal_index]+1, 1], aspect=1)
+    signalimages = Flux.unstack(truesignals, dims=4)
+    #unique(df[:, [:truesignal, :truesignal_index]])
+    for (signalindex, signalimage) in enumerate(signalimages)
+        ax = Axis(f[signalindex+1, 1], aspect=1)
         hidedecorations!(ax)
-        heatmap!(ax, 1.0f0 .- signalrow[:truesignal][:, end:-1:1], colormap=:grays)
+        plotimage(ax, signalimage)
+        heatmap!(ax, 1.0f0 .- signalimage[:, end:-1:1], colormap=:grays)
     end
 
     for row in eachrow(df)
         df = unique(df) # in case there are other experiment dimensions
-        ax = Axis(f[row[:truesignal_index]+1, row[:frequency_index]+1], aspect=1, title="err: $(@sprintf("%.1E", row[:relative_error]))")
-        hidedecorations!(ax)
-        heatmap!(ax, 1.0f0 .- row[:recovered_signal][:, end:-1:1], colormap=:grays)
+        recoveredsignals = Flux.unstack(row[:recoveredsignals], dims=4)
+        for (idx, recoveredimg) in enumerate(recoveredsignals)
+            ax = Axis(f[idx+1, row[:frequencyindex]+1], aspect=1, title="err: $(@sprintf("%.1E", row[:relative_errors][idx]))")
+            hidedecorations!(ax)
+            plotimage(ax, recoveredimg)
+        end
     end
 
     # compute the true frequency numbers
-    frequencies_num_measurements = unique(select(df, :frequency_index, :num_frequencies))
+    frequencies_num_measurements = unique(select(df, :frequencyindex, :numfrequencies))
 
     for frequency_instance in eachrow(frequencies_num_measurements)
-        Label(f[1, frequency_instance[:frequency_index]+1], "m:$(frequency_instance[:num_frequencies])", tellheight=true, tellwidth=false, fontsize=20)
+        Label(f[1, frequency_instance[:frequencyindex]+1], "m:$(frequency_instance[:numfrequencies])", tellheight=true, tellwidth=false, fontsize=20)
     end
     f
 end
+
+function plotimage(ax, img)
+    if length(size(img)) == 2 #grayscale
+        heatmap!(ax, 1.0f0 .- img[:, end:-1:1], colormap=:grays)
+    elseif size(img, 3) == 1
+        heatmap!(ax, 1.0f0 .- img[:, end:-1:1, 1], colormap=:grays)
+    else # color
+        throw(NotImplementedException())
+    end
+end
+
+function plotimage(img)
+    f = Figure()
+    ax = Axis(f[1, 1], aspect=1)
+    hidedecorations!(ax)
+    plotimage(ax, img)
+    f
+end
+
 
 #function _plot_tableofrecoveries(plottedtruesignals, recovered_signals::Matrix{<:Matrix{<:AbstractFloat}}, recovery_errors::Matrix{<:AbstractFloat}, array_num_measurements; plotwidth=200, kwargs...)
 #numfrequencies = size(recovered_signals, 1)

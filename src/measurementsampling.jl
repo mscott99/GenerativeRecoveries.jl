@@ -5,13 +5,40 @@ struct IndexedMatrix{T,L}
     indices::L
 end
 *(indexedMatrix::IndexedMatrix, x::AbstractArray) = (indexedMatrix.A*x)[indexedMatrix.indices]
+#*(indexedMatrix::IndexedMatrix, x::AbstractArray{<:Any,4}) = cat(((indexedMatrix.A*x[:, :, :, i])[indexedMatrix.indices[:, :, :, i]] for i in size(x, 4))..., dims=2)
 
 struct ComplexIndexedMatrix{T,L}
     A::T
     indices::L
 end
 *(mat::ComplexIndexedMatrix, x::AbstractArray) = (mat.A*Complex.(x))[mat.indices]
+#*(mat::ComplexIndexedMatrix, x::AbstractArray) = (arg -> arg[mat.indices]).([mat.A] .* Flux.unstack(Complex.(x), dims=4))
 
+
+#*(mat::ComplexIndexedMatrix, x::AbstractArray{<:Any,4}) = cat(((mat.A*Complex.(x[:, :, :, i]))[mat.indices[:, :, :, i]] for i in size(x, 4))..., dims=2)
+
+function subsampledlinearmeasurement(signalbatch, A, selected_freqs; dct=false)
+    if !dct
+        signalbatch = Complex.(signalbatch)
+    end
+    splittedbatch = collect(eachslice(signalbatch, dims=4))
+    multipliedbatch = cat(([A] .* splittedbatch)..., dims=4)
+    Flux.Dense
+
+    cat([(A*(signalbatch[:, :, :, i]))[selected_freqs[:, :, :, i]] for i in size(signalbatch, 4)]..., dims=2)
+end
+
+
+function addsamplinguniformlyatrandom!(frequencysamplingarray::AbstractArray{<:Bool}, numtoadd::Integer; rng=TaskLocalRNG())
+    indexset = CartesianIndices(size(frequencysamplingarray))
+    while numtoadd != 0
+        tryindex = rand(indexset)
+        if frequencysamplingarray[tryindex] == 0
+            frequencysamplingarray[tryindex] = 1
+            numtoadd -= 1
+        end
+    end
+end
 # getting random frequencies
 function getuniformlysampledfrequencieswithreplacement(aimed_m::Integer, img_size::Tuple{Vararg{Int}}; rng=TaskLocalRNG(), kwargs...)
     rand(rng, Bernoulli(aimed_m / prod(img_size)), img_size...)
@@ -72,16 +99,6 @@ function samplefrequenciesuniformlyanddeterministically(aimed_m::Integer, img_si
     samplefrequenciesuniformlyanddeterministically(deterministic_m, uniform_m, img_size; dct=dct, rng=rng)
 end
 
-function addsamplinguniformlyatrandom!(frequencysamplingarray::AbstractArray{<:Bool}, numtoadd::Integer; rng=TaskLocalRNG())
-    indexset = CartesianIndices(size(frequencysamplingarray))
-    while numtoadd != 0
-        tryindex = rand(indexset)
-        if frequencysamplingarray[tryindex] == 0
-            frequencysamplingarray[tryindex] = 1
-            numtoadd -= 1
-        end
-    end
-end
 
 
 function sampledeterministicallyfirstfrequencies(deterministic_m::Integer, img_size::Tuple{Vararg{Int}}; kwargs...)
