@@ -14,6 +14,9 @@ macro bind(def, element)
     end
 end
 
+# ╔═╡ 4bb6a50c-3fe7-47c6-ab7b-34db0db82fa2
+using Pkg
+
 # ╔═╡ bae1018c-a807-11ed-1589-5d7cab5af97d
 begin
     using Lux
@@ -40,13 +43,19 @@ end
 using CairoMakie: Axis
 
 # ╔═╡ 87a995b1-86b0-4977-8dcf-5df0ea673b0c
-using NNlib: gelu
+using NNlib: leakyrelu
 
 # ╔═╡ bfe93c8f-d7ff-4ea0-92b5-901255056f84
 using ProgressLogging: @progress
 
 # ╔═╡ 9ec82bdd-e00d-42c7-a53c-5abfa7343826
 include("/Users/matthewscott/Prog/Reusable Scripts/plotfunctions.jl")
+
+# ╔═╡ 9190abdd-c8f6-4917-a746-3b29bf045aa0
+pwd()
+
+# ╔═╡ 29570c7a-ca07-4bc8-8345-524f2fcc916a
+
 
 # ╔═╡ c4f2e83f-9f3b-4c09-ab3b-a3b1a01d2e77
 rng = default_rng()
@@ -108,6 +117,8 @@ hiddendense = 64
 encodingdim = 16
 
 # ╔═╡ 127a3892-dc08-49b7-8962-8e44f6b6b101
+# ╠═╡ disabled = true
+#=╠═╡
 encoderbody = Chain(
     Lux.Conv((3, 3), 1 => 32, gelu, pad=1), # 28x28 with number of weights 16x3x3x1 = 144
 	MaxPool((2,2)),
@@ -117,6 +128,7 @@ encoderbody = Chain(
      # 1568
 	Dense(widthlastconvoutput*widthlastconvoutput*lastdepth => hiddendense, gelu),
 );
+  ╠═╡ =#
 
 # ╔═╡ cb8e7fea-e953-4f24-a8f3-d5955b69f5ea
 encodermu = Dense(hiddendense => encodingdim, identity);
@@ -125,6 +137,8 @@ encodermu = Dense(hiddendense => encodingdim, identity);
 encoderlogvar = Dense(hiddendense => encodingdim, identity); # logvar
 
 # ╔═╡ f6532beb-d233-4394-bb07-fd16723bab67
+# ╠═╡ disabled = true
+#=╠═╡
 decoder = Chain(
 	Dense(encodingdim=>hiddendense, gelu),
 	Dense(hiddendense=>lastdepth*widthlastconvoutput*widthlastconvoutput, gelu),
@@ -134,6 +148,7 @@ decoder = Chain(
 	Upsample((2,2)),
     ConvTranspose((3, 3), 32 => 1, gelu, pad=1), # 7x7
 );
+  ╠═╡ =#
 
 # ╔═╡ d25ceb40-2bf4-493a-aca2-163e37c6df8d
 # ╠═╡ disabled = true
@@ -161,6 +176,11 @@ decoder = Chain(
 # ╔═╡ 7e8cbcb1-c078-44fa-baf8-32738b18e324
 sqrt(2352/(3*lastdepth))
 
+# ╔═╡ dfa8f976-b08c-4326-9432-6771a1a59765
+#=╠═╡
+fullmodel(rng, data, ps, st)[1] |> size
+  ╠═╡ =#
+
 # ╔═╡ c6d6e07d-4c9a-480a-90b5-4b3b1e78ee97
 shortps, shortst = Lux.setup(rng, shortencoderbody);
 
@@ -171,19 +191,57 @@ initdata = MLDatasets.MNIST(:train).features[:, :, 1:3];
 data = reshape(initdata, 28, 28, 1, :);
 
 # ╔═╡ ba175ff5-d776-48d8-8b9e-c247a09f410a
+# ╠═╡ disabled = true
+#=╠═╡
 encoderbranch = Lux.BranchLayer(encodermu, encoderlogvar);
+  ╠═╡ =#
 
 # ╔═╡ 5b013a7d-41e4-4ff5-9a28-8233625ee123
+# ╠═╡ disabled = true
+#=╠═╡
 encoder = Chain(encoderbody, encoderbranch);
+  ╠═╡ =#
 
 # ╔═╡ 5245548c-e25e-4af0-aefc-59750e64c90d
+# ╠═╡ disabled = true
+#=╠═╡
 fullmodel = LuxVaeModel(encoder, decoder)
+  ╠═╡ =#
+
+# ╔═╡ 8bd25b1c-cc67-4d82-9ab6-a9f1ae4cc21b
+function makefullconv_vae(encodingdim, activation)
+    encoderbody = Chain(
+        Lux.Conv((3, 3), 1 => 32, activation, pad=SamePad()), # 28x28 with number of weights 16x3x3x1 = 144
+ # 14x14 with number of weights 32x3x3x16 = 4608
+        MaxPool((2, 2)),
+        Conv((3, 3), 32=> 32, activation), # 14x14 with number of weights 32x3x3x16 = 4608
+    )
+    encodermu = Conv((3,3), 32=>encodingdim, identity)
+    encoderlogvar = Conv((3,3), 32=>encodingdim, identity) # logvar
+    decoder = Chain(
+        ConvTranspose((3,3), encodingdim=>32, identity),
+        ConvTranspose((3,3), 32=>32, activation),
+        Upsample((2,2)),
+		ConvTranspose((3,3), 32=>1, activation, pad=SamePad()),
+    )
+    encoderbranch = Lux.BranchLayer(encodermu, encoderlogvar)
+    encoder = Chain(encoderbody, encoderbranch)
+    LuxVaeModel(encoder, decoder)
+end
+
+# ╔═╡ b389ac43-2b8d-490f-8728-fd803e48d85f
+fullconvmodel = makefullconv_vae(4, leakyrelu)
+
+# ╔═╡ d6c23c81-3b75-446a-9d58-803642fa606e
+convps, convst = Lux.setup(rng, fullconvmodel);
+
+# ╔═╡ 5430cc3a-d292-4d01-8ac9-5c2d79cb77bd
+fullconvmodel(rng, data, convps, convst)[1] |> size
 
 # ╔═╡ 37818d0a-a0de-4f81-8e0f-5f54e990439c
+#=╠═╡
 ps, st = Lux.setup(rng, fullmodel);
-
-# ╔═╡ dfa8f976-b08c-4326-9432-6771a1a59765
-fullmodel(rng, data, ps, st)[1] |> size
+  ╠═╡ =#
 
 # ╔═╡ e35b6fec-0ab1-422e-a148-4fabcc650e6b
 function klfromgaussian(μ, logvar)
@@ -196,26 +254,26 @@ function vaeloss(rng, x, model, ps, st)
     randcoeffs = randn(rng, Float32, size(logvar))
     z = μ .+ randcoeffs .* exp.(0.5f0 .* logvar)
     output, newdecoderstate = Lux.apply(model.decoder, z, ps.decoder, st.decoder)
-    loss = logitbinarycrossentropy(output, x; agg=sum) + 1f0 * klfromgaussian(μ, logvar)
+    loss = logitbinarycrossentropy(output, x; agg=sum) + 1f-1 * klfromgaussian(μ, logvar)
     return (loss, (encoder=newencoderstate, decoder=newdecoderstate))
 end
 
 # ╔═╡ ee87d4fa-3881-461b-9879-fc4dd6666c16
-dataforloader = reshape(MLDatasets.MNIST(:train).features[:, :, 1:10000], 28, 28, 1, :);
+dataforloader = reshape(MLDatasets.MNIST(:train).features[:, :, 1:100], 28, 28, 1, :);
 
 # ╔═╡ edf6f8f6-b44b-45d4-8989-a030074120bc
-dataloader = DataLoader(dataforloader, batchsize=64, shuffle=true)
+dataloader = DataLoader(dataforloader, batchsize=20, shuffle=true)
 
 # ╔═╡ d05b7d2c-eb20-4ae5-954b-49143996aa84
-opt = Optimisers.OptimiserChain(ClipGrad(1f0),WeightDecay(1f-7), Optimisers.Adam(1f-3))
+opt = Optimisers.OptimiserChain(ClipGrad(1f0),WeightDecay(1f-4), Optimisers.Adam(1f-2))
 
 # ╔═╡ b45e15e3-9a9a-4fcf-8718-e8a8554ce668
-opt_st = Optimisers.setup(opt, ps)
+opt_st = Optimisers.setup(opt, convps)
 
 # ╔═╡ 4adf2bb4-13f2-40bd-9937-12d373ddba3c
 function trainvaemodel(lossfn, fullmodel, modelps, modelstate, dataloader, opt_state)
     rng = Random.default_rng()
-    @progress for i in 1:2
+    @progress for i in 1:20
         local loss = 0
         for data in dataloader
             (loss, modelstate), back = Zygote.pullback(ps -> lossfn(rng, data, fullmodel, ps, modelstate), modelps)
@@ -227,7 +285,7 @@ function trainvaemodel(lossfn, fullmodel, modelps, modelstate, dataloader, opt_s
 end
 
 # ╔═╡ 2d660c95-967a-4fbd-bf84-3b704701c5b0
-trainedps, trained_opt_state, trainedst = trainvaemodel(vaeloss, fullmodel, ps, st, dataloader, opt_st);
+trainedps, trained_opt_state, trainedst = trainvaemodel(vaeloss, fullconvmodel, convps, convst, dataloader, opt_st);
 
 # ╔═╡ 75dc7fe8-41e3-4070-a8b6-0505a1106719
 # ╠═╡ disabled = true
@@ -236,10 +294,10 @@ trainedps2, trained_opt_state2, trainedst2 = trainvaemodel(vaeloss, fullmodel, t
   ╠═╡ =#
 
 # ╔═╡ d5fc2f23-79d8-4d83-a939-bec85c3eec16
-recovereddata = sigmoid.(fullmodel(rng, dataforloader, trainedps, trainedst)[1]);
+recovereddata = sigmoid.(fullconvmodel(rng, dataforloader, trainedps, trainedst)[1]);
 
 # ╔═╡ 0af2ea39-83ca-4cb3-9ce5-600e9a487eca
-initialmodelrecovered = sigmoid.(fullmodel(rng, dataforloader, ps, st)[1]);
+initialmodelrecovered = sigmoid.(fullconvmodel(rng, dataforloader, convps, convst)[1]);
 
 # ╔═╡ 4e1bd7c2-f550-4c5d-a63d-f2a475b58282
 dicttrainingtime = Dict(("recovereddata"=>recovereddata), ("initialmodelrecovered"=> initialmodelrecovered));
@@ -261,7 +319,9 @@ begin
 end
 
 # ╔═╡ de705d17-6813-431e-bac6-5fc7935a3898
+#=╠═╡
 recovered = fullmodel(rng, data, trainedps, trained_modelstate)
+  ╠═╡ =#
 
 # ╔═╡ eb7cf374-af2f-474f-ba8c-8663e9720230
 # ╠═╡ disabled = true
@@ -284,6 +344,7 @@ MLDatasets = "eb30cadb-4394-5ae3-aed4-317e484a6458"
 MLUtils = "f1d291b0-491e-4a28-83b9-f70985020b54"
 NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 Optimisers = "3bd65402-5787-11e9-1adc-39752487f4e2"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 ProgressLogging = "33c8b6b6-d38a-422a-b730-caa89a2f386c"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
@@ -313,7 +374,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "b9c2579cb36724d399576814acac39a6dce0046b"
+project_hash = "14fa59b9671dd0de9c21b842b4b00d425b13dba3"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -2478,6 +2539,9 @@ version = "3.5.0+0"
 """
 
 # ╔═╡ Cell order:
+# ╠═4bb6a50c-3fe7-47c6-ab7b-34db0db82fa2
+# ╠═9190abdd-c8f6-4917-a746-3b29bf045aa0
+# ╠═29570c7a-ca07-4bc8-8345-524f2fcc916a
 # ╠═bae1018c-a807-11ed-1589-5d7cab5af97d
 # ╠═0361c5f1-b306-4cfd-85f6-7954e713e1ae
 # ╠═9ec82bdd-e00d-42c7-a53c-5abfa7343826
@@ -2502,6 +2566,10 @@ version = "3.5.0+0"
 # ╠═ba175ff5-d776-48d8-8b9e-c247a09f410a
 # ╠═5b013a7d-41e4-4ff5-9a28-8233625ee123
 # ╠═5245548c-e25e-4af0-aefc-59750e64c90d
+# ╠═8bd25b1c-cc67-4d82-9ab6-a9f1ae4cc21b
+# ╠═b389ac43-2b8d-490f-8728-fd803e48d85f
+# ╠═d6c23c81-3b75-446a-9d58-803642fa606e
+# ╠═5430cc3a-d292-4d01-8ac9-5c2d79cb77bd
 # ╠═37818d0a-a0de-4f81-8e0f-5f54e990439c
 # ╠═e35b6fec-0ab1-422e-a148-4fabcc650e6b
 # ╠═2814ba61-5c6c-4147-8577-5f6dc5a50d9e
