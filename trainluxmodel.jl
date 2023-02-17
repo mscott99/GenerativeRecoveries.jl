@@ -91,19 +91,6 @@ begin
     end
 end
 
-# ╔═╡ 6f781ef7-f2aa-450f-aeb1-0ad1b171a23c
-# ╠═╡ disabled = true
-#=╠═╡
-encoderbody = Chain(
-    Lux.Conv((3, 3), 1 => 32, relu, pad=1, stride=2), # 28x28 with number of weights 16x3x3x1 = 144
-    Conv((3, 3), 32 => 64, relu, pad=1, stride=2), # 14x14 with number of weights 32x3x3x16 = 4608
-	Conv((3, 3), 64 => 64, relu, pad=1, stride=2),
-	Lux.ReshapeLayer((4*4*64,)),
-     # 1568
-	Dense(64*4*4 => 16, relu),
-);
-  ╠═╡ =#
-
 # ╔═╡ 7bba4409-57fc-42d8-83ef-af960b64d1f8
 widthlastconvoutput = 7
 
@@ -116,70 +103,14 @@ hiddendense = 64
 # ╔═╡ 62ab969c-f06d-4dc0-b810-204d72d84da2
 encodingdim = 16
 
-# ╔═╡ 127a3892-dc08-49b7-8962-8e44f6b6b101
-# ╠═╡ disabled = true
-#=╠═╡
-encoderbody = Chain(
-    Lux.Conv((3, 3), 1 => 32, gelu, pad=1), # 28x28 with number of weights 16x3x3x1 = 144
-	MaxPool((2,2)),
-    Conv((3, 3), 32 => lastdepth, gelu, pad=1), # 14x14 with number of weights 32x3x3x16 = 4608
-	MaxPool((2,2)),
-	Lux.ReshapeLayer((widthlastconvoutput*widthlastconvoutput*lastdepth,)),
-     # 1568
-	Dense(widthlastconvoutput*widthlastconvoutput*lastdepth => hiddendense, gelu),
-);
-  ╠═╡ =#
-
 # ╔═╡ cb8e7fea-e953-4f24-a8f3-d5955b69f5ea
 encodermu = Dense(hiddendense => encodingdim, identity);
 
 # ╔═╡ 5fda5e67-2621-43cc-8ddb-740aa4e5bca1
 encoderlogvar = Dense(hiddendense => encodingdim, identity); # logvar
 
-# ╔═╡ f6532beb-d233-4394-bb07-fd16723bab67
-# ╠═╡ disabled = true
-#=╠═╡
-decoder = Chain(
-	Dense(encodingdim=>hiddendense, gelu),
-	Dense(hiddendense=>lastdepth*widthlastconvoutput*widthlastconvoutput, gelu),
-    ReshapeLayer((widthlastconvoutput, widthlastconvoutput, lastdepth)),
-	Upsample((2,2)),
-	ConvTranspose((3, 3), lastdepth => 32, gelu, pad=1),
-	Upsample((2,2)),
-    ConvTranspose((3, 3), 32 => 1, gelu, pad=1), # 7x7
-);
-  ╠═╡ =#
-
-# ╔═╡ d25ceb40-2bf4-493a-aca2-163e37c6df8d
-# ╠═╡ disabled = true
-#=╠═╡
-decoder = Chain(
-	Dense(4=>16),
-	Dense(16=>64*4*4, relu),
-    ReshapeLayer((4, 4, 64)),
-	ConvTranspose((3, 3), 64 => 64, relu, pad=1, stride=2),
-	ConvTranspose((3, 3), 64 => 32, relu, pad=(0,1,0,1), stride=2),
-    ConvTranspose((3, 3), 32 => 1, relu, pad=(0,1,0,1), stride=2), # 7x7
-);
-
-#decoder = Chain( Dense(16 => 144, relu),
-#		ReshapeLayer((3,3,16)),
-#		Upsample((2, 2)),
-#        ConvTranspose((3, 3), 16 => 16, relu, pad=1), # 7x7
-#        Upsample((2, 2)), # 14x14
-#        ConvTranspose((3, 3), 16 => 16, relu, pad=1), # 14x14
-#        Upsample((3, 3)), # 28x28
-#        ConvTranspose((5, 5), 16 => 1, identity, pad=1), # 28x28
-#);
-  ╠═╡ =#
-
 # ╔═╡ 7e8cbcb1-c078-44fa-baf8-32738b18e324
 sqrt(2352/(3*lastdepth))
-
-# ╔═╡ dfa8f976-b08c-4326-9432-6771a1a59765
-#=╠═╡
-fullmodel(rng, data, ps, st)[1] |> size
-  ╠═╡ =#
 
 # ╔═╡ c6d6e07d-4c9a-480a-90b5-4b3b1e78ee97
 shortps, shortst = Lux.setup(rng, shortencoderbody);
@@ -189,24 +120,6 @@ initdata = MLDatasets.MNIST(:train).features[:, :, 1:3];
 
 # ╔═╡ f0f6af6d-bc34-412d-b8c1-ad22651c893e
 data = reshape(initdata, 28, 28, 1, :);
-
-# ╔═╡ ba175ff5-d776-48d8-8b9e-c247a09f410a
-# ╠═╡ disabled = true
-#=╠═╡
-encoderbranch = Lux.BranchLayer(encodermu, encoderlogvar);
-  ╠═╡ =#
-
-# ╔═╡ 5b013a7d-41e4-4ff5-9a28-8233625ee123
-# ╠═╡ disabled = true
-#=╠═╡
-encoder = Chain(encoderbody, encoderbranch);
-  ╠═╡ =#
-
-# ╔═╡ 5245548c-e25e-4af0-aefc-59750e64c90d
-# ╠═╡ disabled = true
-#=╠═╡
-fullmodel = LuxVaeModel(encoder, decoder)
-  ╠═╡ =#
 
 # ╔═╡ 8bd25b1c-cc67-4d82-9ab6-a9f1ae4cc21b
 function makefullconv_vae(encodingdim, activation)
@@ -237,11 +150,6 @@ convps, convst = Lux.setup(rng, fullconvmodel);
 
 # ╔═╡ 5430cc3a-d292-4d01-8ac9-5c2d79cb77bd
 fullconvmodel(rng, data, convps, convst)[1] |> size
-
-# ╔═╡ 37818d0a-a0de-4f81-8e0f-5f54e990439c
-#=╠═╡
-ps, st = Lux.setup(rng, fullmodel);
-  ╠═╡ =#
 
 # ╔═╡ e35b6fec-0ab1-422e-a148-4fabcc650e6b
 function klfromgaussian(μ, logvar)
@@ -287,12 +195,6 @@ end
 # ╔═╡ 2d660c95-967a-4fbd-bf84-3b704701c5b0
 trainedps, trained_opt_state, trainedst = trainvaemodel(vaeloss, fullconvmodel, convps, convst, dataloader, opt_st);
 
-# ╔═╡ 75dc7fe8-41e3-4070-a8b6-0505a1106719
-# ╠═╡ disabled = true
-#=╠═╡
-trainedps2, trained_opt_state2, trainedst2 = trainvaemodel(vaeloss, fullmodel, trainedps, trainedst, dataloader, trained_opt_state);
-  ╠═╡ =#
-
 # ╔═╡ d5fc2f23-79d8-4d83-a939-bec85c3eec16
 recovereddata = sigmoid.(fullconvmodel(rng, dataforloader, trainedps, trainedst)[1]);
 
@@ -317,17 +219,6 @@ begin
 	plotimage(ax2,dicttrainingtime[showdata][:,:,:,imgindex])
 	f
 end
-
-# ╔═╡ de705d17-6813-431e-bac6-5fc7935a3898
-#=╠═╡
-recovered = fullmodel(rng, data, trainedps, trained_modelstate)
-  ╠═╡ =#
-
-# ╔═╡ eb7cf374-af2f-474f-ba8c-8663e9720230
-# ╠═╡ disabled = true
-#=╠═╡
-moretrainedps, moretrained_opt_state, moretrained_modelstate = trainvaemodel(vaeloss, fullmodel, trainedps, trained_opt_state, dataloader, trained_opt_state);
-  ╠═╡ =#
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -374,7 +265,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "14fa59b9671dd0de9c21b842b4b00d425b13dba3"
+project_hash = "c71f6c25574300bc4ab478f307070918e0ca75c7"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
